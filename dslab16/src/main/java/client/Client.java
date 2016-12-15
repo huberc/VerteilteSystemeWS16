@@ -245,6 +245,9 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	@Command
 	public String exit() throws IOException {
+
+		logout();
+
 		this.commandQueue.add("exit");
 		// this.incomingMessageListener.close();
 		if (this.privateConnectionListener != null)

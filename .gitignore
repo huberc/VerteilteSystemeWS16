@@ -1,0 +1,6 @@
+.idea/*
+out/*
+
+**/*.class
+**/*.iml
+dslab16/src/test/java/test/Constants.java
