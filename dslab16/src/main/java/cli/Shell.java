@@ -9,7 +9,6 @@ import java.lang.reflect.Method;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -71,12 +70,11 @@ public class Shell implements Runnable, Closeable {
 	@Override
 	public void run() {
 		try {
-			for (String line; !Thread.currentThread().isInterrupted()
-					&& (line = readLine()) != null;) {
-				write(String.format("%s\t\t%s> %s%n",
-						DATE_FORMAT.get().format(new Date()), name, line)
-						.getBytes());
+			for (String line; !Thread.currentThread().isInterrupted() && (line = readLine()) != null;) {
+
+				//write(String.format("%s\t\t%s> %s%n",DATE_FORMAT.get().format(new Date()), name, line).getBytes());
 				Object result;
+
 				try {
 					result = invoke(line);
 				} catch (Throwable throwable) {
@@ -84,16 +82,17 @@ public class Shell implements Runnable, Closeable {
 					throwable.printStackTrace(new PrintStream(str, true));
 					result = str.toString();
 				}
+
 				if (result != null) {
 					print(result);
 				}
+
 			}
 		} catch (IOException e) {
 			try {
 				writeLine("Shell closed");
 			} catch (IOException ex) {
-				System.out.println(ex.getClass().getName() + ": "
-						+ ex.getMessage());
+				System.out.println(ex.getClass().getName() + ": " + ex.getMessage());
 			}
 		}
 	}
@@ -121,15 +120,15 @@ public class Shell implements Runnable, Closeable {
 	 *             if an I/O error occurs
 	 */
 	public void writeLine(String line) throws IOException {
-		String now = DATE_FORMAT.get().format(new Date());
+
+
 		if (line.indexOf('\n') >= 0 && line.indexOf('\n') < line.length() - 1) {
-			write((String.format("%s\t\t%s:\n", now, name)).getBytes());
+			write((String.format("%s\n", name)).getBytes());
 			for (String l : line.split("[\\r\\n]+")) {
-				write((String.format("%s\t\t%s\n", now, l)).getBytes());
+				write((String.format("%s\n", l)).getBytes());
 			}
 		} else {
-			write((String.format("%s\t\t%s: %s%s", now, name, line,
-					line.endsWith("\n") ? "" : "\n")).getBytes());
+			write((String.format("%s%s", line,line.endsWith("\n") ? "" : "\n")).getBytes());
 		}
 	}
 
@@ -245,9 +244,9 @@ public class Shell implements Runnable, Closeable {
 		for (Method method : obj.getClass().getMethods()) {
 			Command command = method.getAnnotation(Command.class);
 			if (command != null) {
-				String name = command.value().isEmpty() ? method.getName()
-						: command.value();
+				String name = command.value().isEmpty() ? method.getName() : command.value();
 				name = name.startsWith("!") ? name : "!" + name;
+
 				if (commandMap.containsKey(name)) {
 					throw new IllegalArgumentException(String.format(
 							"Command '%s' is already registered.", name));
@@ -276,20 +275,19 @@ public class Shell implements Runnable, Closeable {
 		int pos = cmd.indexOf(' ');
 		String cmdName = pos >= 0 ? cmd.substring(0, pos) : cmd;
 		ShellCommandDefinition cmdDef = commandMap.get(cmdName);
+
 		if (cmdDef == null) {
-			throw new IllegalArgumentException(String.format(
-					"Command '%s' not registered.", cmdName));
+			throw new IllegalArgumentException(String.format("Command '%s' not registered.", cmdName));
 		}
 
-		String[] parts = cmd.split("\\s+",
-				cmdDef.targetMethod.getParameterTypes().length + 1);
+		String[] parts = cmd.split("\\s+", cmdDef.targetMethod.getParameterTypes().length + 1);
 		Object[] args = new Object[parts.length - 1];
+
 		for (int i = 1; i < parts.length; i++) {
-			args[i - 1] = conversionService.convert(parts[i],
-					cmdDef.targetMethod.getParameterTypes()[i - 1]);
+			args[i - 1] = conversionService.convert(parts[i],cmdDef.targetMethod.getParameterTypes()[i - 1]);
 		}
-		return invocationHandler.invoke(cmdDef.targetObject,
-				cmdDef.targetMethod, args);
+
+		return invocationHandler.invoke(cmdDef.targetObject,cmdDef.targetMethod, args);
 	}
 
 	/**

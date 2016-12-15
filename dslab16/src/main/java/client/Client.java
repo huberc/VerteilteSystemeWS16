@@ -239,7 +239,7 @@ public class Client implements IClientCli, Runnable {
 	@Command
 	public String lastMsg() throws IOException {
 		this.commandQueue.add("lastMsg");
-		return (this.lastPublicMessage != null) ? this.lastPublicMessage : "No message received !";
+		return (this.lastPublicMessage != null) ? this.lastPublicMessage : "No message received!";
 	}
 
 	@Override

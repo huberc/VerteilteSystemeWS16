@@ -48,8 +48,7 @@ public class IncomingMessageListener extends Thread {
 					String nextToLastCommand = this.client.popLastCommand();
 					if (lastCommand.equals("lookup")) {
 						if (nextToLastCommand == null || !nextToLastCommand.equals("msg")) {
-							this.userResponseStream.println(String.format("%s\t\t%s> %s%n",
-									DATE_FORMAT.get().format(new Date()), name, response));
+							this.userResponseStream.println(String.format("%s: %s",name, response));
 						} else if (nextToLastCommand.equals("msg")) {
 							synchronized (this) {
 								this.client.setPrivateAddressReceiver(matcher.group(0));
@@ -60,16 +59,14 @@ public class IncomingMessageListener extends Thread {
 
 				} else if (response.contains("!public ")) {
 					this.client.setLastPublicMessage(response.replace("!public ", ""));
-					this.userResponseStream.println(String.format("%s\t\t%s> %s%n",
-							DATE_FORMAT.get().format(new Date()), name, response.replace("!public ", "")));
+					this.userResponseStream.println(String.format("%s: %s",name, response.replace("!public ", "")));
 				} else {
 					if (response.contains("not registered") || response.contains("Successfully registered address")) {
 						synchronized (this) {
 							notify();
 						}
 					}
-					this.userResponseStream.println(
-							String.format("%s\t\t%s> %s%n", DATE_FORMAT.get().format(new Date()), name, response));
+					this.userResponseStream.println(String.format("%s: %s%n",name, response));
 				}
 			}
 		} catch (IOException e) {
