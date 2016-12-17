@@ -8,7 +8,6 @@ public class User {
     private String password;
     private String address;
     private Socket socket;
-    private Socket publicSocket;
     private Boolean loggedIn = false;
 
     public User(Integer id, String name, String password) {
@@ -63,14 +62,6 @@ public class User {
 
     public void setSocket(Socket socket) {
         this.socket = socket;
-    }
-
-    public Socket getPublicSocket() {
-        return publicSocket;
-    }
-
-    public void setPublicSocket(Socket publicSocket) {
-        this.publicSocket = publicSocket;
     }
 
     public boolean equals(Object object) {

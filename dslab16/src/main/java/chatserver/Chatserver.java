@@ -7,11 +7,6 @@ import java.io.PrintWriter;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -27,19 +22,17 @@ public class Chatserver implements IChatserverCli, Runnable {
 
 	private String componentName;
 	private Config serverConfig;
-	private Config userConfig;
 	private InputStream userRequestStream;
 	private PrintStream userResponseStream;
 	private DatagramSocket datagramSocket;
 	private ServerSocket serverSocket;
 	private ExecutorService pool;
-	private List<TcpListenerThread> threads = new ArrayList<TcpListenerThread>();
 	private Shell shell;
 
 	Usermanager usermanager = new Usermanager();
 
-	//private Map<String, Boolean> users = new ConcurrentHashMap<>();
-	//private Map<String, String> userRegister = new ConcurrentHashMap<>();
+	// private Map<String, Boolean> users = new ConcurrentHashMap<>();
+	// private Map<String, String> userRegister = new ConcurrentHashMap<>();
 
 	/**
 	 * @param componentName
@@ -51,11 +44,10 @@ public class Chatserver implements IChatserverCli, Runnable {
 	 * @param userResponseStream
 	 *            the output stream to write the console output to
 	 */
-	public Chatserver(String componentName, Config serverConfig, Config userConfig, InputStream userRequestStream,
+	public Chatserver(String componentName, Config serverConfig, InputStream userRequestStream,
 			PrintStream userResponseStream) {
 		this.componentName = componentName;
 		this.serverConfig = serverConfig;
-		this.userConfig = userConfig;
 		this.userRequestStream = userRequestStream;
 		this.userResponseStream = userResponseStream;
 		this.pool = Executors.newFixedThreadPool(10);
@@ -106,7 +98,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 
 		Integer id = 1;
 		for (User u : usermanager.getUsers()) {
-			result+= (id++) + ". " + u.getName() + " " + ((u.isLoggedIn())?"online":"offline") + "\n";
+			result += (id++) + ". " + u.getName() + " " + ((u.isLoggedIn()) ? "online" : "offline") + "\n";
 		}
 
 		return result;
@@ -140,25 +132,18 @@ public class Chatserver implements IChatserverCli, Runnable {
 		return "Successfully closed all connections! Bye";
 	}
 
-	public void addThread(TcpListenerThread tlt) {
-		this.threads.add(tlt);
-	}
-
 	public void clearLoggedInUsers(String username) {
 
-		for(User u : usermanager.getUsers()){
+		for (User u : usermanager.getUsers()) {
 
 			u.setLoggedIn(false);
 
-			try{
-				if(u.getSocket() != null && !u.getSocket().isClosed()){
+			try {
+				if (u.getSocket() != null && !u.getSocket().isClosed()) {
 					u.getSocket().close();
 				}
 
-				if(u.getPublicSocket() != null && !u.getPublicSocket().isClosed()){
-					u.getPublicSocket().close();
-				}
-			}catch (IOException ex){
+			} catch (IOException ex) {
 				// Can't be handled
 			}
 
@@ -169,8 +154,8 @@ public class Chatserver implements IChatserverCli, Runnable {
 		String result = "Online users:\n";
 
 		for (User u : usermanager.getUsers()) {
-			if(u.isLoggedIn()){
-				result+= "* " + u.getName() + "\n";
+			if (u.isLoggedIn()) {
+				result += "* " + u.getName() + "\n";
 			}
 		}
 
@@ -183,59 +168,62 @@ public class Chatserver implements IChatserverCli, Runnable {
 	 *            component
 	 */
 	public static void main(String[] args) {
-		Chatserver chatserver = new Chatserver(args[0], new Config("chatserver"), new Config("user"), System.in,
-				System.out);
+		Chatserver chatserver = new Chatserver(args[0], new Config("chatserver"), System.in, System.out);
 		chatserver.run();
 	}
 
 	/**
 	 * Logs in a user
-	 * @param username username
-	 * @param password password
+	 * 
+	 * @param username
+	 *            username
+	 * @param password
+	 *            password
 	 * @return a string respsone
 	 */
-	public String loginUser(String username, String password, Socket socket){
+	public String loginUser(String username, String password, Socket socket) {
 
 		User user = usermanager.getByName(username);
 
-		//Check if user exists and password is correct
-		if(user == null || !user.getPassword().equals(password)){
+		// Check if user exists and password is correct
+		if (user == null || !user.getPassword().equals(password)) {
 			return "Wrong username or password.";
 		}
 
-		synchronized(this){
-			//Check if user is logged in
-			if(user.isLoggedIn()){
+		synchronized (this) {
+			// Check if user is logged in
+			if (user.isLoggedIn()) {
 				return "Already logged in.";
 			}
 
-			//Set user to logged in
+			// Set user to logged in
 			user.setLoggedIn(true);
 		}
 
-		//Set the socket and socketAddress to the user
+		// Set the socket and socketAddress to the user
 		user.setSocket(socket);
 
 		return "Successfully logged in.";
 	}
 
-
 	/**
 	 * Logout a user
-	 * @param clientsocket the socketAdress of the user
+	 * 
+	 * @param clientsocket
+	 *            the socketAdress of the user
 	 * @return a string response
 	 */
-	public synchronized String logoutUser(Socket clientsocket){
+	public synchronized String logoutUser(Socket clientsocket) {
 
-		//Get user by address
+		// Get user by address
 		User user = usermanager.getLoggedInUserBySocket(clientsocket);
 
-		//Check if logged in
-		if(user == null){
+		// Check if logged in
+		if (user == null) {
 			return "Not logged in.";
 		}
 
-		//Logout
+		// Logout
 		user.setLoggedIn(false);
 		user.setAddress(null);
 
@@ -244,18 +232,21 @@ public class Chatserver implements IChatserverCli, Runnable {
 
 	/**
 	 * Registers the given address for the given client
-	 * @param clientSocket the client Socket
-	 * @param address the address from the user
+	 * 
+	 * @param clientSocket
+	 *            the client Socket
+	 * @param address
+	 *            the address from the user
 	 * @return
 	 */
-	public synchronized String registerUserAddress(Socket clientSocket, String address){
+	public synchronized String registerUserAddress(Socket clientSocket, String address) {
 
 		User currentUser = usermanager.getLoggedInUserBySocket(clientSocket);
 
-		//Check if logged in
-		if(currentUser == null){
-			return "Not logged in.";
-		}
+		// Check if logged in
+//		if (currentUser == null) {
+//			return "Not logged in.";
+//		}
 
 		currentUser.setAddress(address);
 
@@ -264,22 +255,25 @@ public class Chatserver implements IChatserverCli, Runnable {
 
 	/**
 	 * Looksup the address from the given user
-	 * @param username the username from the user
+	 * 
+	 * @param username
+	 *            the username from the user
 	 * @return the address
 	 */
-	public String lookup(String username, Socket clientSocket){
+	public String lookup(String username, Socket clientSocket) {
 
-		User currentUser = usermanager.getLoggedInUserBySocket(clientSocket);
+		//User currentUser = usermanager.getLoggedInUserBySocket(clientSocket);
 
-		//Check if logged in
-		if(currentUser == null){
-			return "Not logged in.";
-		}
+		// Check if logged in
+		// NO need anymore, has already been checked
+//		if (currentUser == null) {
+//			return "Not logged in.";
+//		}
 
 		User user = usermanager.getByName(username);
 
-		if(user == null || user.getAddress() == null){
-			//System.out.print(users.toString());
+		if (user == null || user.getAddress() == null) {
+			// System.out.print(users.toString());
 			return "Wrong username or user not registered.";
 		}
 
@@ -288,30 +282,36 @@ public class Chatserver implements IChatserverCli, Runnable {
 
 	/**
 	 * Sends a message to all other clients
-	 * @param clientSocket the client which sended the message
-	 * @param message the message
+	 * 
+	 * @param clientSocket
+	 *            the client which sended the message
+	 * @param message
+	 *            the message
 	 * @return the response to the sender
 	 */
 	public String sendPublicMessage(Socket clientSocket, String message) {
 
-		//Check if user is logged in
+		// Check if user is logged in
+
+		
+
 		User currentUser = usermanager.getLoggedInUserBySocket(clientSocket);
-		if(currentUser == null){
-			return "Not logged in.";
-		}
+		// NO need anymore, has already been checked
+		/*
+		 * if (currentUser == null) { return "Not logged in."; }
+		 */
 
-		//Write to other clients
-		try{
-			for(User u : usermanager.getUsers()){
-				if(u.getSocket() != null && u.getPublicSocket() != null && u.getPublicSocket().isConnected() && u.isLoggedIn()
-						&& !u.getSocket().equals(clientSocket)){
+		// Write to other clients
+		try {
+			for (User u : usermanager.getUsers()) {
+				if (u.getSocket() != null && u.isLoggedIn() && !u.getSocket().equals(clientSocket)) {
 
-					PrintWriter writer = new PrintWriter(u.getPublicSocket().getOutputStream(),true);
-					writer.println(currentUser.getName() + ": " + message);
+					PrintWriter writer = new PrintWriter(u.getSocket().getOutputStream(), true);
+					writer.println("!public " + currentUser.getName() + ": " + message);
 					writer.flush();
 				}
 			}
-		}catch (IOException ex) {
+		} catch (IOException ex) {
 			ex.printStackTrace();
 		}
 

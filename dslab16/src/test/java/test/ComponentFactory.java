@@ -32,7 +32,8 @@ public class ComponentFactory {
 		 * following lines but you do not have to.
 		 */
 		Config config = new Config("client");
-		return new Client(componentName, config, in, out);
+		Config userConfig = new Config("user");
+		return new Client(componentName, config, in, userConfig, out);
 	}
 
 	/**
@@ -53,8 +54,7 @@ public class ComponentFactory {
 		 * following lines but you do not have to.
 		 */
 		Config config = new Config("chatserver");
-		Config userConfig = new Config("user");
-		return new Chatserver(componentName, config, userConfig, in, out);
+		return new Chatserver(componentName, config, in, out);
 	}
 
 	// --- Methods needed for Lab 2. Please note that you do not have to

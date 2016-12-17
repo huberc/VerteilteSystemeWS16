@@ -61,7 +61,7 @@ public class IncomingMessageListener extends Thread {
 					this.client.setLastPublicMessage(response.replace("!public ", ""));
 					this.userResponseStream.println(String.format("%s: %s",name, response.replace("!public ", "")));
 				} else {
-					if (response.contains("not registered") || response.contains("Successfully registered address")) {
+					if (response.contains("not registered") || response.contains("successfully registered address")) {
 						synchronized (this) {
 							notify();
 						}
@@ -80,5 +80,16 @@ public class IncomingMessageListener extends Thread {
 				}
 		}
 
+	}
+	
+	public void close(){
+		Thread.currentThread().interrupt();
+		try {
+			this.serverReader.close();
+			this.userResponseStream.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 }

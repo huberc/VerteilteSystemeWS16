@@ -36,6 +36,9 @@ public class Client implements IClientCli, Runnable {
 	private IncomingMessageListener incomingMessageListener;
 	private Stack<String> commandQueue = new Stack<String>();
 	private PrivateConnectionListener privateConnectionListener;
+	private Config userConfig;
+	private boolean loggedIn = false;
+	private boolean haveBeenLoggedIn = false;
 
 	/**
 	 * @param componentName
@@ -47,11 +50,13 @@ public class Client implements IClientCli, Runnable {
 	 * @param userResponseStream
 	 *            the output stream to write the console output to
 	 */
-	public Client(String componentName, Config config, InputStream userRequestStream, PrintStream userResponseStream) {
+	public Client(String componentName, Config config, InputStream userRequestStream, Config userConfig,
+			PrintStream userResponseStream) {
 		this.componentName = componentName;
 		this.config = config;
 		this.userRequestStream = userRequestStream;
 		this.userResponseStream = userResponseStream;
+		this.userConfig = userConfig;
 		/*
 		 * First, create a new Shell instance and provide the name of the
 		 * component, an InputStream as well as an OutputStream. If you want to
@@ -89,52 +94,91 @@ public class Client implements IClientCli, Runnable {
 		 * specify them correctly in the client properties file(see
 		 * client1.properties and client2.properties)
 		 */
-		try {
-			this.socket = new Socket(this.config.getString("chatserver.host"), config.getInt("chatserver.tcp.port"));
-			// create a writer to send messages to the server
-			this.serverWriter = new PrintWriter(this.socket.getOutputStream(), true);
-		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+
 		this.userResponseStream.println(getClass().getName() + ":  up and waiting for commands!");
-		this.incomingMessageListener = new IncomingMessageListener(this.socket, this.userResponseStream,
-				this.componentName, this);
-		this.pool.execute(incomingMessageListener);
 
 	}
 
 	@Override
 	@Command
 	public String login(String username, String password) throws IOException {
-		this.commandQueue.add("login");
-		this.serverWriter.println("!login " + username + " " + password);
-		return null;
+		if (!this.loggedIn) {
+			this.commandQueue.add("login");
+			String pw = "";
+			try {
+				pw = userConfig.getString(username + ".password");
+			} catch (Exception e) {
+				return "Wrong username or password.";
+			}
+			if (pw == null) {
+				return "Wrong username or password.";
+			} else if (password.equals(pw)) {
+				if (this.haveBeenLoggedIn) {
+					this.loggedIn = true;
+					this.haveBeenLoggedIn = true;
+					this.serverWriter.println("!login " + username + " " + password);
+				} else {
+					this.loggedIn = true;
+					this.haveBeenLoggedIn = true;
+					try {
+						this.socket = new Socket(this.config.getString("chatserver.host"),
+								config.getInt("chatserver.tcp.port"));
+						// create a writer to send messages to the server
+						this.serverWriter = new PrintWriter(this.socket.getOutputStream(), true);
+					} catch (UnknownHostException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					this.serverWriter.println("!login " + username + " " + password);
+					this.incomingMessageListener = new IncomingMessageListener(this.socket, this.userResponseStream,
+							this.componentName, this);
+					this.pool.execute(incomingMessageListener);
+				}
+			} else {
+				return "Wrong username or password.";
+			}
+			
+			return null;
+		} else {
+			return "Already logged in.";
+		}
 	}
 
 	@Override
 	@Command
 	public String logout() throws IOException {
-		this.commandQueue.add("logout");
-		this.serverWriter.println("!logout");
-		return null;
+		if (this.loggedIn) {
+			this.commandQueue.add("logout");
+			this.serverWriter.println("!logout");
+			this.loggedIn = false;
+			return null;
+		} else {
+			return "Not logged in.";
+		}
+
 	}
 
 	@Override
 	@Command
 	public String send(String message) throws IOException {
-		this.commandQueue.add("send");
-		this.serverWriter.println("!send " + message);
-		return null;
+		if (this.loggedIn) {
+			this.commandQueue.add("send");
+			this.serverWriter.println("!send " + message);
+			return null;
+		} else {
+			return "Not logged in.";
+		}
+
 	}
 
 	@Override
 	@Command
 	public String list() throws IOException {
 		this.commandQueue.add("list");
+
 		byte[] buffer;
 		DatagramPacket packet;
 		this.datagramSocket = new DatagramSocket();
@@ -160,93 +204,113 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	@Command
 	public String msg(String username, String message) throws IOException {
-		this.commandQueue.add("msg");
-		this.lookup(username);
-		synchronized (this.incomingMessageListener) {
-			try {
-				this.incomingMessageListener.wait();
-			} catch (InterruptedException e) {
-				this.userResponseStream.println("Error in client server communication");
-			}
-		}
-		if (this.privateAddressReceiver != null) {
-			String[] address = (this.privateAddressReceiver.split("[:]"));
-			String host = address[0];
-			int port = Integer.parseInt(address[1]);
-
-			try {
-				Socket privateSocket = new Socket(host, port);
-
-				PrintWriter privateSocketWriter = new PrintWriter(privateSocket.getOutputStream(), true);
-				BufferedReader privateSocketReader = new BufferedReader(
-						new InputStreamReader(privateSocket.getInputStream()));
-
-				privateSocketWriter.println(message);
-				String response;
-				if ((response = privateSocketReader.readLine()) != null) {
-					if (response.equals("!ack")) {
-						this.userResponseStream.println(username + " responded with !ack");
-					} else {
-						this.userResponseStream.println("Something went wrong");
-					}
+		if (this.loggedIn) {
+			this.commandQueue.add("msg");
+			this.lookup(username);
+			synchronized (this.incomingMessageListener) {
+				try {
+					this.incomingMessageListener.wait();
+				} catch (InterruptedException e) {
+					this.userResponseStream.println("Error in client server communication");
 				}
-				privateSocketWriter.close();
-				privateSocketReader.close();
-				privateSocket.close();
-
-			} catch (UnknownHostException e) {
-				this.userResponseStream.println("Wrong hostname specified");
-			} catch (IOException e) {
-				this.userResponseStream.println("Connection closed to the other user");
 			}
+			if (this.privateAddressReceiver != null) {
+				String[] address = (this.privateAddressReceiver.split("[:]"));
+				String host = address[0];
+				int port = Integer.parseInt(address[1]);
 
+				try {
+					if(host.equals("localhost"))
+						host = "127.0.0.1";
+					Socket privateSocket = new Socket(host, port);
+
+					PrintWriter privateSocketWriter = new PrintWriter(privateSocket.getOutputStream(), true);
+					BufferedReader privateSocketReader = new BufferedReader(
+							new InputStreamReader(privateSocket.getInputStream()));
+
+					privateSocketWriter.println(message);
+					String response;
+					if ((response = privateSocketReader.readLine()) != null) {
+						if (response.equals("!ack")) {
+							this.userResponseStream.println(username + " responded with !ack");
+						} else {
+							this.userResponseStream.println("Something went wrong");
+						}
+					}
+					privateSocketWriter.close();
+					privateSocketReader.close();
+					privateSocket.close();
+
+				} catch (UnknownHostException e) {
+					this.userResponseStream.println("Wrong hostname specified");
+				} catch (IOException e) {
+					this.userResponseStream.println("Connection closed to the other user");
+				}
+
+			}
+			return null;
+		} else {
+			return "Not logged in.";
 		}
-		return null;
+
 	}
 
 	@Override
 	@Command
 	public String lookup(String username) throws IOException {
-		this.commandQueue.add("lookup");
-		this.serverWriter.println("!lookup " + username);
-		return null;
+		if (this.loggedIn) {
+			this.commandQueue.add("lookup");
+			this.serverWriter.println("!lookup " + username);
+			return null;
+		} else {
+			return "Not logged in.";
+		}
 	}
 
 	@Override
 	@Command
 	public String register(String privateAddress) throws IOException {
-		this.commandQueue.add("register");
-		this.serverWriter.println("!register " + privateAddress);
-		synchronized (this.incomingMessageListener) {
-			try {
-				this.incomingMessageListener.wait();
-			} catch (InterruptedException e) {
-				this.userResponseStream.println("Error in client server communication");
-			}
+		if (this.loggedIn) {
+			this.commandQueue.add("register");
+			this.serverWriter.println("!register " + privateAddress);
+			synchronized (this.incomingMessageListener) {
+				try {
+					this.incomingMessageListener.wait();
+				} catch (InterruptedException e) {
+					this.userResponseStream.println("Error in client server communication");
+				}
 
+			}
+			if (privateAddress.matches("\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[:]\\d{1,5}|localhost:\\d{1,5}")) {
+				String[] address = (privateAddress.split("[:]"));
+				String host = address[0];
+				int port = Integer.parseInt(address[1]);
+				this.privateConnectionListener = new PrivateConnectionListener(host, port, this.userResponseStream);
+				this.pool.execute(this.privateConnectionListener);
+			}
+			return null;
+		} else {
+			return "Not logged in.";
 		}
-		if (privateAddress.matches("\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[:]\\d{1,5}")) {
-			String[] address = (privateAddress.split("[:]"));
-			String host = address[0];
-			int port = Integer.parseInt(address[1]);
-			this.privateConnectionListener = new PrivateConnectionListener(host, port, this.userResponseStream);
-			this.pool.execute(this.privateConnectionListener);
-		}
-		return null;
 	}
 
 	@Override
 	@Command
 	public String lastMsg() throws IOException {
-		this.commandQueue.add("lastMsg");
-		return (this.lastPublicMessage != null) ? this.lastPublicMessage : "No message received!";
+		if (this.loggedIn) {
+			this.commandQueue.add("lastMsg");
+			return (this.lastPublicMessage != null) ? this.lastPublicMessage : "No message received!";
+		} else {
+			return "Not logged in.";
+		}
 	}
 
 	@Override
 	@Command
 	public String exit() throws IOException {
 
-		logout();
+		if (this.loggedIn)
+			logout();
 
 		this.commandQueue.add("exit");
 		// this.incomingMessageListener.close();
@@ -300,7 +364,7 @@ public class Client implements IClientCli, Runnable {
 	 *            the first argument is the name of the {@link Client} component
 	 */
 	public static void main(String[] args) throws Exception {
-		Client client = new Client(args[0], new Config("client"), System.in, System.out);
+		Client client = new Client(args[0], new Config("client"), System.in, new Config("user"), System.out);
 		new Thread((Runnable) client).start();
 
 	}
