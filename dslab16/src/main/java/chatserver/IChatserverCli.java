@@ -2,7 +2,7 @@ package chatserver;
 
 import java.io.IOException;
 
-public interface IChatserverCli {
+public interface IChatserverCli{
 
 	// --- Commands needed for Lab 1 ---
 

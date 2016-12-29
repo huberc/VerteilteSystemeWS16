@@ -54,10 +54,10 @@ public class TcpListenerThread extends Thread {
 						response = this.chatserver.sendPublicMessage(this.clientSocket,msg);
 						break;
 					case "!lookup":
-						response = chatserver.lookup(commandParts[1],clientSocket);
+						response = chatserver.lookup(commandParts[1]);
 						break;
 					case "!register":
-						response = chatserver.registerUserAddress(clientSocket, commandParts[1]);
+						response = chatserver.registerUserAddress(this.clientSocket, commandParts[1]);
 						break;
 					default:
 						response = "Unknown request: " + request;

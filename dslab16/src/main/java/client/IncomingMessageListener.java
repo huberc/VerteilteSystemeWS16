@@ -5,9 +5,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,13 +15,6 @@ public class IncomingMessageListener extends Thread {
 	private String name;
 	private Client client;
 	private BufferedReader serverReader;
-
-	private static final ThreadLocal<DateFormat> DATE_FORMAT = new ThreadLocal<DateFormat>() {
-		@Override
-		protected DateFormat initialValue() {
-			return new SimpleDateFormat("HH:mm:ss.SSS");
-		}
-	};
 
 	public IncomingMessageListener(Socket socket, PrintStream userPrintStream, String name, Client client) {
 		this.socket = socket;

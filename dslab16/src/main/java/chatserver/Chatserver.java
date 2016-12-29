@@ -7,6 +7,10 @@ import java.io.PrintWriter;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -16,6 +20,9 @@ import chatserver.udp.UdpListenerThread;
 import cli.Command;
 import cli.Shell;
 import model.User;
+import nameserver.INameserverForChatserver;
+import nameserver.exceptions.AlreadyRegisteredException;
+import nameserver.exceptions.InvalidDomainException;
 import util.Config;
 
 public class Chatserver implements IChatserverCli, Runnable {
@@ -28,8 +35,10 @@ public class Chatserver implements IChatserverCli, Runnable {
 	private ServerSocket serverSocket;
 	private ExecutorService pool;
 	private Shell shell;
+	private INameserverForChatserver nameserverForChatserver;
+	private Registry registry;
 
-	Usermanager usermanager = new Usermanager();
+	private Usermanager usermanager = new Usermanager();
 
 	// private Map<String, Boolean> users = new ConcurrentHashMap<>();
 	// private Map<String, String> userRegister = new ConcurrentHashMap<>();
@@ -51,7 +60,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 		this.userRequestStream = userRequestStream;
 		this.userResponseStream = userResponseStream;
 		this.pool = Executors.newFixedThreadPool(10);
-		usermanager.loadFromConfig();
+		this.usermanager.loadFromConfig();
 
 		/*
 		 * First, create a new Shell instance and provide the name of the
@@ -78,6 +87,17 @@ public class Chatserver implements IChatserverCli, Runnable {
 		}
 
 		try {
+			this.registry = LocateRegistry.getRegistry(this.serverConfig.getString("registry.host"),
+					this.serverConfig.getInt("registry.port"));
+			this.nameserverForChatserver = (INameserverForChatserver) this.registry
+					.lookup(this.serverConfig.getString("root_id"));
+		} catch (RemoteException e) {
+			throw new RuntimeException("Error while obtaining registry/server-remote-object.", e);
+		} catch (NotBoundException e) {
+			throw new RuntimeException("Error while looking for server-remote-object.", e);
+		}
+
+		try {
 			// handle incoming connections from client in a separate thread
 			this.userResponseStream.println("Server is up!");
 			this.pool.execute(new Thread(this.shell));
@@ -97,7 +117,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 		String result = "";
 
 		Integer id = 1;
-		for (User u : usermanager.getUsers()) {
+		for (User u : this.usermanager.getUsers()) {
 			result += (id++) + ". " + u.getName() + " " + ((u.isLoggedIn()) ? "online" : "offline") + "\n";
 		}
 
@@ -134,7 +154,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 
 	public void clearLoggedInUsers(String username) {
 
-		for (User u : usermanager.getUsers()) {
+		for (User u : this.usermanager.getUsers()) {
 
 			u.setLoggedIn(false);
 
@@ -153,7 +173,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 	public String getAllOnlineUsers() {
 		String result = "Online users:\n";
 
-		for (User u : usermanager.getUsers()) {
+		for (User u : this.usermanager.getUsers()) {
 			if (u.isLoggedIn()) {
 				result += "* " + u.getName() + "\n";
 			}
@@ -183,7 +203,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 	 */
 	public String loginUser(String username, String password, Socket socket) {
 
-		User user = usermanager.getByName(username);
+		User user = this.usermanager.getByName(username);
 
 		// Check if user exists and password is correct
 		if (user == null || !user.getPassword().equals(password)) {
@@ -216,7 +236,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 	public synchronized String logoutUser(Socket clientsocket) {
 
 		// Get user by address
-		User user = usermanager.getLoggedInUserBySocket(clientsocket);
+		User user = this.usermanager.getLoggedInUserBySocket(clientsocket);
 
 		// Check if logged in
 		if (user == null) {
@@ -241,14 +261,24 @@ public class Chatserver implements IChatserverCli, Runnable {
 	 */
 	public synchronized String registerUserAddress(Socket clientSocket, String address) {
 
-		User currentUser = usermanager.getLoggedInUserBySocket(clientSocket);
+		User currentUser = this.usermanager.getLoggedInUserBySocket(clientSocket);
+		//
+		// // Check if logged in
+		// // if (currentUser == null) {
+		// // return "Not logged in.";
+		// // }
+		//
+		// currentUser.setAddress(address);
 
-		// Check if logged in
-//		if (currentUser == null) {
-//			return "Not logged in.";
-//		}
-
-		currentUser.setAddress(address);
+		try {
+			this.nameserverForChatserver.registerUser(currentUser.getName(), address);
+		} catch (RemoteException e) {
+			throw new RuntimeException("Remote exception", e);
+		} catch (AlreadyRegisteredException e) {
+			throw new RuntimeException("AlreadyRegisteredException", e);
+		} catch (InvalidDomainException e) {
+			throw new RuntimeException("InvalidDomainException", e);
+		}
 
 		return "successfully registered address for " + currentUser.getName() + ".";
 	}
@@ -260,24 +290,47 @@ public class Chatserver implements IChatserverCli, Runnable {
 	 *            the username from the user
 	 * @return the address
 	 */
-	public String lookup(String username, Socket clientSocket) {
+	public String lookup(String username) {
 
-		//User currentUser = usermanager.getLoggedInUserBySocket(clientSocket);
+		// User currentUser = usermanager.getLoggedInUserBySocket(clientSocket);
 
 		// Check if logged in
 		// NO need anymore, has already been checked
-//		if (currentUser == null) {
-//			return "Not logged in.";
-//		}
+		// if (currentUser == null) {
+		// return "Not logged in.";
+		// }
 
-		User user = usermanager.getByName(username);
+		// User user = this.usermanager.getByName(username);
 
-		if (user == null || user.getAddress() == null) {
-			// System.out.print(users.toString());
+		// if (user == null || user.getAddress() == null) {
+		// // System.out.print(users.toString());
+		// return "Wrong username or user not registered.";
+		// }
+
+		String[] zones = username.split("\\.");
+		
+
+		if (zones.length == 3) {
+			try {
+				INameserverForChatserver nameserverZone1 = this.nameserverForChatserver.getNameserver(zones[2]);
+				INameserverForChatserver nameserverZone2 = nameserverZone1.getNameserver(zones[1]);
+				return nameserverZone2.lookup(zones[0]);
+
+			} catch (RemoteException e) {
+				throw new RuntimeException("Remote exception", e);
+			}
+		} else if (zones.length == 2) {
+			try {
+				INameserverForChatserver nameserverZone1 = this.nameserverForChatserver.getNameserver(zones[1]);
+				return nameserverZone1.lookup(zones[0]);
+			} catch (RemoteException e) {
+				throw new RuntimeException("Remote exception", e);
+			}
+
+		} else {
 			return "Wrong username or user not registered.";
 		}
 
-		return user.getAddress();
 	}
 
 	/**
@@ -293,9 +346,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 
 		// Check if user is logged in
 
-		
-
-		User currentUser = usermanager.getLoggedInUserBySocket(clientSocket);
+		User currentUser = this.usermanager.getLoggedInUserBySocket(clientSocket);
 		// NO need anymore, has already been checked
 		/*
 		 * if (currentUser == null) { return "Not logged in."; }
@@ -303,7 +354,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 
 		// Write to other clients
 		try {
-			for (User u : usermanager.getUsers()) {
+			for (User u : this.usermanager.getUsers()) {
 				if (u.getSocket() != null && u.isLoggedIn() && !u.getSocket().equals(clientSocket)) {
 
 					PrintWriter writer = new PrintWriter(u.getSocket().getOutputStream(), true);
