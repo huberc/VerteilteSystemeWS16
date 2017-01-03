@@ -6,12 +6,13 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
+import chatserver.Channel;
 import chatserver.Chatserver;
 
 /**
  * Thread to listen for incoming data packets on the given socket.
  */
-public class UdpListenerThread extends Thread {
+public class UdpListenerThread extends Thread implements Channel{
 
 	private DatagramSocket datagramSocket;
 	private Chatserver chatserver;
@@ -73,5 +74,17 @@ public class UdpListenerThread extends Thread {
 				this.datagramSocket.close();
 		}
 
+	}
+
+	@Override
+	public String read() throws IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void write(String output) throws IOException {
+		// TODO Auto-generated method stub
+		
 	}
 }

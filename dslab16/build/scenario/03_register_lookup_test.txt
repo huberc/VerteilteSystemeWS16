@@ -1,0 +1,60 @@
+*   Chatserver  chatserver
+*   Client      alice.vienna.at
+*   Client      tom.ch
+*   Client      max.us
+
+alice.vienna.at:    !login alice.vienna.at 12345
+>                   verify("successfully logged in.")
+
+tom.ch:             !register localhost:4444
+>                   verify("not logged in.")
+
+tom.ch:             !login tom.ch test
+>                   verify("successfully logged in.")
+
+max.us:             !lookup tom.ch
+>                   verify("not logged in.")
+
+max.us:             !login max.us password
+>                   verify("successfully logged in.")
+
+chatserver:         !users
+>                   verify(".*alice.*online.*bill.*offline.*max.*online.*tom.*online.*", T(test.util.Flag).REGEX)
+
+alice.vienna.at:    !lookup notauser
+>                   verify("wrong username or user not registered.")
+
+alice.vienna.at:    !lookup tom.ch
+>                   verify("wrong username or user not registered.")
+
+tom.ch:             !register localhost:4444
+>                   verify("successfully registered address for tom.ch.")
+
+alice.vienna.at:    !lookup tom.ch
+>                   verify("localhost:4444")
+
+max.us:             !lookup tom.ch
+>                   verify("localhost:4444")
+
+max.us:             !register localhost:5555
+>                   verify("successfully registered address for max.us.")
+
+tom.ch:             !lookup max.us
+>                   verify("localhost:5555")
+
+max.us:             !logout
+>                   verify("successfully logged out.")
+
+max.us:             !lookup tom.ch
+>                   verify("not logged in.")
+
+tom.ch:             !lookup max.us
+>                   verify("wrong username or user not registered.")
+
+chatserver:         !users
+>                   verify(".*alice.*online.*bill.*offline.*max.*offline.*tom.*online.*", T(test.util.Flag).REGEX)
+
+chatserver:         !exit
+alice.vienna.at:    !exit
+tom.ch:             !exit
+max.us:             !exit

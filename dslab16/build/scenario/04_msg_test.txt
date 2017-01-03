@@ -1,0 +1,57 @@
+*   Chatserver  chatserver
+*   Client      alice.vienna.at
+*   Client      tom.ch
+*   Client      max.us
+
+alice.vienna.at:    !login alice.vienna.at 12345
+>                   verify("successfully logged in.")
+
+tom.ch:             !msg test test
+>                   verify("not logged in.")
+
+tom.ch:             !login tom.ch test
+>                   verify("successfully logged in.")
+
+max.us:             !login max.us password
+>                   verify("successfully logged in.")
+
+chatserver:         !users
+>                   verify(".*alice.*online.*bill.*offline.*max.*online.*tom.*online.*", T(test.util.Flag).REGEX)
+
+tom.ch:             !msg test test
+>                   verify("wrong username or user not reachable.")
+
+tom.ch:             !msg max.us hallo max!
+>                   verify("wrong username or user not reachable.")
+
+max.us:             !register localhost:4444
+>                   verify("successfully registered address for max.us.")
+
+alice.vienna.at:    !lookup max.us
+>                   verify("localhost:4444")
+
+tom.ch:             !msg max.us hey max!
+>                   verify("max.us replied with !ack.")
+
+alice.vienna.at:    !msg max.us i like your hair!
+>                   verify("max.us replied with !ack.")
+
+tom.ch:             !msg max.us waddup?!
+>                   verify("localhost:4444", T(test.util.Flag).NOT)
+
+max.us:             !logout
+>                   verify("successfully logged out.")
+
+max.us:             !msg test test
+>                   verify("not logged in.")
+
+alice.vienna.at:    !msg max.us still online?
+>                   verify("wrong username or user not reachable.")
+
+chatserver:         !users
+>                   verify(".*alice.*online.*bill.*offline.*max.*offline.*tom.*online.*", T(test.util.Flag).REGEX)
+
+chatserver:         !exit
+alice.vienna.at:    !exit
+tom.ch:             !exit
+max.us:             !exit

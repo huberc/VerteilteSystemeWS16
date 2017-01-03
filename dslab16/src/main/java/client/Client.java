@@ -332,9 +332,11 @@ public class Client implements IClientCli, Runnable {
 			// Preserve interrupt status
 			Thread.currentThread().interrupt();
 		}
+		if(userRequestStream!=null)
 		this.userRequestStream.close();
-
+		if(serverWriter!=null)
 		this.serverWriter.close();
+		if(serverWriter!=null)
 		this.socket.close();
 		if (this.datagramSocket != null) {
 			this.datagramSocket.close();

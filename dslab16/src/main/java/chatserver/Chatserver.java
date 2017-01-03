@@ -39,6 +39,8 @@ public class Chatserver implements IChatserverCli, Runnable {
 	private Registry registry;
 
 	private Usermanager usermanager = new Usermanager();
+	private TcpListenerThread tcpChannel;
+	private TestDecorator decoratedTcpChannel;
 
 	// private Map<String, Boolean> users = new ConcurrentHashMap<>();
 	// private Map<String, String> userRegister = new ConcurrentHashMap<>();
@@ -102,7 +104,10 @@ public class Chatserver implements IChatserverCli, Runnable {
 			this.userResponseStream.println("Server is up!");
 			this.pool.execute(new Thread(this.shell));
 			for (;;) {
-				this.pool.execute(new TcpListenerThread(this.serverSocket.accept(), this, this.userResponseStream));
+				//this.pool.execute(new TcpListenerThread(this.serverSocket.accept(), this, this.userResponseStream));
+				tcpChannel=new TcpListenerThread(this.serverSocket.accept(), this, this.userResponseStream);
+				decoratedTcpChannel=new TestDecorator(tcpChannel);
+				this.pool.execute(decoratedTcpChannel);
 				this.pool.execute(new UdpListenerThread(this.datagramSocket, this, this.userResponseStream));
 			}
 		} catch (IOException e) {

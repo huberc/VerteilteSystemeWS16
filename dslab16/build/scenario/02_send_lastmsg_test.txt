@@ -1,0 +1,55 @@
+*   Chatserver  chatserver
+*   Client      alice.vienna.at
+*   Client      tom.ch
+*   Client      max.us
+
+alice.vienna.at:    !login alice.vienna.at 12345
+>                   verify("successfully logged in.")
+
+tom.ch:             !send i am not logged in
+>                   verify("not logged in.")
+
+tom.ch:             !login tom.ch test
+>                   verify("successfully logged in.")
+
+max.us:             !login max.us password
+>                   verify("successfully logged in.")
+
+chatserver:         !users
+>                   verify(".*alice.*online.*bill.*offline.*max.*online.*tom.*online.*", T(test.util.Flag).REGEX)
+
+tom.ch:             !send i am a message
+
+tom.ch:             !lastMsg
+>                   verify("no message received!")
+
+alice.vienna.at:    !lastMsg
+>                   verify("tom.ch: i am a message")
+
+max.us:             !lastMsg
+>                   verify("tom.ch: i am a message")
+
+max.us:             !send i am the second message
+
+tom.ch:             !lastMsg
+>                   verify("max.us: i am the second message")
+
+alice.vienna.at:    !lastMsg
+>                   verify("max.us: i am the second message")
+
+max.us:             !lastMsg
+>                   verify("tom.ch: i am a message")
+
+max.us:             !logout
+>                   verify("successfully logged out.")
+
+max.us:             !send i am not logged in
+>                   verify("not logged in.")
+
+chatserver:         !users
+>                   verify(".*alice.*online.*bill.*offline.*max.*offline.*tom.*online.*", T(test.util.Flag).REGEX)
+
+chatserver:         !exit
+alice.vienna.at:    !exit
+tom.ch:             !exit
+max.us:             !exit

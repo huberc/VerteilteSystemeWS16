@@ -8,7 +8,9 @@ import java.net.Socket;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class IncomingMessageListener extends Thread {
+import chatserver.Channel;
+
+public class IncomingMessageListener extends Thread implements Channel {
 
 	private Socket socket;
 	private PrintStream userResponseStream;
@@ -21,6 +23,13 @@ public class IncomingMessageListener extends Thread {
 		this.userResponseStream = userPrintStream;
 		this.name = name;
 		this.client = client;
+		// create a reader to retrieve messages send by the server
+		try {
+			this.serverReader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
+		} catch (IOException e) {
+			System.out.println("Failed to initialize IncomingMessageReader");
+			e.printStackTrace();
+		}
 	}
 
 	public void run() {
@@ -29,8 +38,6 @@ public class IncomingMessageListener extends Thread {
 				.compile("\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[:]\\d{1,5}|([\\w\\.\\-]+):(\\d{1,3})");
 		Matcher matcher;
 		try {
-			// create a reader to retrieve messages send by the server
-			this.serverReader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
 			while (!(Thread.currentThread().isInterrupted()) && (response = this.serverReader.readLine()) != null) {
 				matcher = pattern.matcher(response);
 				if (matcher.find()) {
@@ -38,7 +45,9 @@ public class IncomingMessageListener extends Thread {
 					String nextToLastCommand = this.client.popLastCommand();
 					if (lastCommand.equals("lookup")) {
 						if (nextToLastCommand == null || !nextToLastCommand.equals("msg")) {
-							this.userResponseStream.println(String.format("%s: %s",name, response));
+							// this.userResponseStream.println(String.format("%s:
+							// %s",name, response));
+							write(response);
 						} else if (nextToLastCommand.equals("msg")) {
 							synchronized (this) {
 								this.client.setPrivateAddressReceiver(matcher.group(0));
@@ -49,18 +58,30 @@ public class IncomingMessageListener extends Thread {
 
 				} else if (response.contains("!public ")) {
 					this.client.setLastPublicMessage(response.replace("!public ", ""));
-					this.userResponseStream.println(String.format("%s: %s",name, response.replace("!public ", "")));
+					response.replace("!public", "");
+					// this.userResponseStream.println(String.format("%s:
+					// %s",name, response.replace("!public ", "")));
+					write(response);
 				} else {
 					if (response.contains("not registered") || response.contains("successfully registered address")) {
 						synchronized (this) {
 							notify();
 						}
 					}
-					this.userResponseStream.println(String.format("%s: %s%n",name, response));
+					// this.userResponseStream.println(String.format("%s:
+					// %s%n",name, response));
+					write(response);
 				}
 			}
 		} catch (IOException e) {
-			this.userResponseStream.println("Connection closed to chatserver");
+			try {
+				write("Connection closed");
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			// this.userResponseStream.println("Connection closed to
+			// chatserver");
 		} finally {
 			if (this.socket != null && !this.socket.isClosed())
 				try {
@@ -71,15 +92,28 @@ public class IncomingMessageListener extends Thread {
 		}
 
 	}
-	
-	public void close(){
+
+	public void close() {
 		Thread.currentThread().interrupt();
 		try {
 			this.serverReader.close();
 			this.userResponseStream.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+
 			e.printStackTrace();
 		}
 	}
+
+	@Override
+	public String read() throws IOException {
+		String input;
+		input = this.serverReader.readLine();
+		return input;
+	}
+
+	@Override
+	public void write(String output) throws IOException {
+		this.userResponseStream.println(String.format("%s: %s", name, output));
+	}
+
 }

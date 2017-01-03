@@ -5,66 +5,73 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.net.Socket;
 
+import chatserver.Channel;
 import chatserver.Chatserver;
 
 /**
  * Thread to listen for incoming connections on the given socket.
  */
-public class TcpListenerThread extends Thread {
+public class TcpListenerThread extends Thread implements Channel {
 
 	private PrintWriter writer;
 	private Socket clientSocket;
 	private String user;
 	private Chatserver chatserver;
 	private PrintStream userResponseStream;
+	private BufferedReader reader;
 
 	public TcpListenerThread(Socket socket, Chatserver chatserver, PrintStream userResponseStream) {
 		this.clientSocket = socket;
 		this.chatserver = chatserver;
 		this.userResponseStream = userResponseStream;
+		try {
+			// prepare the input reader for the socket
+			reader = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream()));
+			// prepare the writer for responding to clients requests
+			this.writer = new PrintWriter(clientSocket.getOutputStream(), true);
+		} catch (IOException e) {
+			System.out.println("Failed to initialize TcpListenerThread (reader/writer)");
+			e.printStackTrace();
+		}
+
 	}
 
 	@Override
 	public void run() {
 
 		try {
-			// prepare the input reader for the socket
-			BufferedReader reader = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream()));
-
-			// prepare the writer for responding to clients requests
-			this.writer = new PrintWriter(clientSocket.getOutputStream(), true);
-
 			String request;
 			// read client requests
-			while ((request = reader.readLine()) != null) {
+			while ((request = read())!= null) {
 				String[] commandParts = request.split("\\s");
 				String response = "";
 
-				switch (commandParts[0]){
-					case "!login":
-						response = chatserver.loginUser(commandParts[1], commandParts[2], this.clientSocket);
-						break;
-					case "!logout":
-						response = chatserver.logoutUser(this.clientSocket);
-						break;
-					case "!send":
-						String msg = request.substring(commandParts[0].length() + 1, request.length());
-						response = this.chatserver.sendPublicMessage(this.clientSocket,msg);
-						break;
-					case "!lookup":
-						response = chatserver.lookup(commandParts[1]);
-						break;
-					case "!register":
-						response = chatserver.registerUserAddress(this.clientSocket, commandParts[1]);
-						break;
-					default:
-						response = "Unknown request: " + request;
-						break;
+				switch (commandParts[0]) {
+				case "!login":
+					response = chatserver.loginUser(commandParts[1], commandParts[2], this.clientSocket);
+					break;
+				case "!logout":
+					response = chatserver.logoutUser(this.clientSocket);
+					break;
+				case "!send":
+					String msg = request.substring(commandParts[0].length() + 1, request.length());
+					response = this.chatserver.sendPublicMessage(this.clientSocket, msg);
+					break;
+				case "!lookup":
+					response = chatserver.lookup(commandParts[1]);
+					break;
+				case "!register":
+					response = chatserver.registerUserAddress(this.clientSocket, commandParts[1]);
+					break;
+				default:
+					response = "Unknown request: " + request;
+					break;
 				}
-
-				writer.println(response);
+				write(response);
+				// writer.println(response);
 			}
 
 		} catch (IOException e) {
@@ -82,5 +89,18 @@ public class TcpListenerThread extends Thread {
 				}
 
 		}
+	}
+
+	@Override
+	public String read() throws IOException {
+		String input;
+		input=this.reader.readLine();
+		return input;
+	}
+
+	@Override
+	public void write(String output) throws IOException {
+		this.writer.println(output);
+		
 	}
 }

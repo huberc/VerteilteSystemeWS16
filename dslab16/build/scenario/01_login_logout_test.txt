@@ -1,0 +1,58 @@
+*   Chatserver  chatserver
+*   Client      alice.vienna.at
+*   Client      tom.ch
+*   Client      max.us
+
+alice.vienna.at:    !login alice.vienna.at 12345
+>                   verify("successfully logged in.")
+
+tom.ch:             !login notauser test
+>                   verify("wrong username or password.")
+
+max.us:             !login max.us password
+>                   verify("successfully logged in.")
+
+chatserver:         !users
+>                   verify(".*alice.*online.*bill.*offline.*max.*online.*tom.*offline.*", T(test.util.Flag).REGEX)
+
+tom.ch:             !login wom.ch test
+>                   verify("wrong username or password.")
+
+tom.ch:             !logout
+>                   verify("not logged in.")
+
+tom.ch:             !login alice.vienna.at 12345
+>                   verify("Already logged in.")
+
+tom.ch:             !login tom.ch test
+>                   verify("successfully logged in.")
+
+alice.vienna.at:    !login alice.vienna.at 12345
+>                   verify("Already logged in.")
+
+max.us:             !exit
+
+chatserver:         !users
+>                   verify(".*alice.*online.*bill.*offline.*max.*offline.*tom.*online.*", T(test.util.Flag).REGEX)
+
+tom.ch:             !logout
+>                   verify("successfully logged out.")
+
+chatserver:         !users
+>                   verify(".*alice.*online.*bill.*offline.*max.*offline.*tom.*offline.*", T(test.util.Flag).REGEX)
+
+tom.ch:             !login max.us password
+>                   verify("successfully logged in.")
+
+tom.ch:             !logout
+>                   verify("successfully logged out.")
+
+tom.ch:             !login tom.ch test
+>                   verify("successfully logged in.")
+
+chatserver:         !users
+>                   verify(".*alice.*online.*bill.*offline.*max.*offline.*tom.*online.*", T(test.util.Flag).REGEX)
+
+chatserver:         !exit
+alice.vienna.at:    !exit
+tom.ch:             !exit
