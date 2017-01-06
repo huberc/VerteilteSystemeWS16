@@ -11,6 +11,8 @@ import java.security.NoSuchAlgorithmException;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.bouncycastle.util.encoders.Base64;
+
 import util.Config;
 import util.Keys;
 
@@ -42,7 +44,7 @@ public class TestDecorator extends ChannelDecorator implements  Runnable{
 	
 	public static void main (String [] args) throws IOException, NoSuchAlgorithmException, InvalidKeyException {
 		//get secret Key
-		String msg= "YOYO bisatches!";
+		String msg= "YOYO!";
 		String generalPath= System.getProperty("user.dir");
 		String finalPath=generalPath+"\\keys\\hmac.key";
 		//keys.readSecretKey actually returns a SecretKeyspec=>cast
@@ -52,9 +54,10 @@ public class TestDecorator extends ChannelDecorator implements  Runnable{
 		mac.init(key);
 		//sign in message-bytes
 		mac.update(msg.getBytes());
-		//compute finalhash
+		//compute finalHash
 		byte[] hashToSend=mac.doFinal();
-		System.out.println(hashToSend.toString());
+		byte[] encodedHashToSend=Base64.encode(hashToSend);
+		//System.out.println(hashToSend.toString());
 		
 		//recieving Side:
 		String msgRecieved="YOYO!";
@@ -62,10 +65,10 @@ public class TestDecorator extends ChannelDecorator implements  Runnable{
 		String generalPathReciever= System.getProperty("user.dir");
 		String finalPathReciever=generalPathReciever+"\\keys\\hmac.key";
 		SecretKeySpec keyReciever=(SecretKeySpec) Keys.readSecretKey(new File(finalPathReciever));
-		macChecker.init(key);
+		macChecker.init(keyReciever);
 		macChecker.update(msgRecieved.getBytes());
 		byte[] hashToCheck=macChecker.doFinal();
-		boolean validHash=MessageDigest.isEqual(hashToCheck, hashToSend);
+		boolean validHash=MessageDigest.isEqual(hashToCheck, Base64.decode(encodedHashToSend));
 		System.out.println(validHash);
 	}
 	

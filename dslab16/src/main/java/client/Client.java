@@ -1,6 +1,7 @@
 package client;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -11,14 +12,22 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Stack;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.bouncycastle.util.encoders.Base64;
+
 import cli.Command;
 import cli.Shell;
 import util.Config;
+import util.Keys;
 
 public class Client implements IClientCli, Runnable {
 
@@ -204,6 +213,7 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	@Command
 	public String msg(String username, String message) throws IOException {
+		
 		if (this.loggedIn) {
 			this.commandQueue.add("msg");
 			this.lookup(username);
@@ -227,14 +237,29 @@ public class Client implements IClientCli, Runnable {
 					PrintWriter privateSocketWriter = new PrintWriter(privateSocket.getOutputStream(), true);
 					BufferedReader privateSocketReader = new BufferedReader(
 							new InputStreamReader(privateSocket.getInputStream()));
-
-					privateSocketWriter.println(message);
+					String output=message;
+					String generalPath= System.getProperty("user.dir");
+					String finalPath=generalPath+"\\keys\\hmac.key";
+					//keys.readSecretKey actually returns a SecretKeyspec=>cast
+					SecretKeySpec key=(SecretKeySpec) Keys.readSecretKey(new File(finalPath));
+					//get instance of Algorithm and initialize with key
+					Mac mac = Mac.getInstance("HmacSHA256");
+					mac.init(key);
+					//sign in message-bytes
+					mac.update(output.getBytes());
+					//compute finalHash
+					byte[] hashToSend=mac.doFinal();
+					//add Base-64 encoding
+					byte[] encodedHashToSend=Base64.encode(hashToSend);
+					privateSocketWriter.println("<"+new String(encodedHashToSend)+"> ! msg <"+ output+">");
+					//privateSocketWriter.println("!tampered"+ new String(encodedHashToSend));
 					String response;
 					if ((response = privateSocketReader.readLine()) != null) {
 						if (response.equals("!ack")) {
 							this.userResponseStream.println(username + " responded with !ack");
-						} else {
-							this.userResponseStream.println("Something went wrong");
+						}
+						if (response.equals("!tampered")){
+							this.userResponseStream.println("Sending"+"<"+hashToSend+"> ! tampered <"+output+">");
 						}
 					}
 					privateSocketWriter.close();
@@ -245,6 +270,10 @@ public class Client implements IClientCli, Runnable {
 					this.userResponseStream.println("Wrong hostname specified");
 				} catch (IOException e) {
 					this.userResponseStream.println("Connection closed to the other user");
+				} catch (NoSuchAlgorithmException e) {
+					this.userResponseStream.println("HMAC Algorithm not found");
+				} catch (InvalidKeyException e) {
+					this.userResponseStream.println("HMAC-Key not found");
 				}
 
 			}
