@@ -13,6 +13,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Stack;
 import java.util.concurrent.ExecutorService;
@@ -237,7 +238,7 @@ public class Client implements IClientCli, Runnable {
 					PrintWriter privateSocketWriter = new PrintWriter(privateSocket.getOutputStream(), true);
 					BufferedReader privateSocketReader = new BufferedReader(
 							new InputStreamReader(privateSocket.getInputStream()));
-					String output=message;
+					String output=message+ "|from: "+username;
 					String generalPath= System.getProperty("user.dir");
 					String finalPath=generalPath+"\\keys\\hmac.key";
 					//keys.readSecretKey actually returns a SecretKeyspec=>cast
@@ -255,10 +256,10 @@ public class Client implements IClientCli, Runnable {
 					//privateSocketWriter.println("!tampered"+ new String(encodedHashToSend));
 					String response;
 					if ((response = privateSocketReader.readLine()) != null) {
-						if (response.equals("!ack")) {
+						if (checkForTampering(response).equals("!ack")) {
 							this.userResponseStream.println(username + " responded with !ack");
 						}
-						if (response.equals("!tampered")){
+						if (checkForTampering(response).equals("!tampered")){
 							this.userResponseStream.println("Sending"+"<"+hashToSend+"> ! tampered <"+output+">");
 						}
 					}
@@ -284,6 +285,55 @@ public class Client implements IClientCli, Runnable {
 
 	}
 
+	public String checkForTampering(String message) throws NoSuchAlgorithmException, IOException, InvalidKeyException {
+		String hmac = "";
+		String msg = "";
+		char[] check = message.toCharArray();
+		int i = 0;
+		char checkMe = check[i];
+
+		while (checkMe != '<') {
+			i = i + 1;
+			checkMe = check[i];
+		}
+		while (checkMe != '>') {
+			i = i + 1;
+			checkMe = check[i];
+			hmac = hmac + checkMe;
+		}
+		while (checkMe != '<') {
+			i = i + 1;
+			checkMe = check[i];
+		}
+
+		while (checkMe != '>') {
+			i = i + 1;
+			checkMe = check[i];
+			msg = msg + checkMe;
+		}
+		hmac = hmac.substring(0, hmac.length() - 1);
+		msg = msg.substring(0, msg.length() - 1);
+		//System.out.println(hmac + "\n" + msg);
+
+		Mac macChecker = Mac.getInstance("HmacSHA256");
+		String generalPathReciever = System.getProperty("user.dir");
+		String finalPathReciever = generalPathReciever + "\\keys\\hmac.key";
+		SecretKeySpec keyReciever = (SecretKeySpec) Keys.readSecretKey(new File(finalPathReciever));
+		macChecker.init(keyReciever);
+		//TamperedTest
+		//msg=msg+"tampered";
+		macChecker.update(msg.getBytes());
+		byte[] hashToCheck=macChecker.doFinal();
+		boolean validHash=MessageDigest.isEqual(hashToCheck, Base64.decode(hmac));
+		//System.out.println(validHash);
+		if(validHash){
+		return "!ack";
+		}
+		else{
+		return "!tampered";	
+		}
+	}
+	
 	@Override
 	@Command
 	public String lookup(String username) throws IOException {

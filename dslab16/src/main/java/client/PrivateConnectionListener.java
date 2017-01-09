@@ -76,6 +76,24 @@ public class PrivateConnectionListener extends Thread implements Channel {
 		}
 
 	}
+	
+	public String generateHmac(String msg) throws IOException, NoSuchAlgorithmException, InvalidKeyException{
+		String output=msg;
+		String generalPath= System.getProperty("user.dir");
+		String finalPath=generalPath+"\\keys\\hmac.key";
+		//keys.readSecretKey actually returns a SecretKeyspec=>cast
+		SecretKeySpec key=(SecretKeySpec) Keys.readSecretKey(new File(finalPath));
+		//get instance of Algorithm and initialize with key
+		Mac mac = Mac.getInstance("HmacSHA256");
+		mac.init(key);
+		//sign in message-bytes
+		mac.update(output.getBytes());
+		//compute finalHash
+		byte[] hashToSend=mac.doFinal();
+		//add Base-64 encoding
+		byte[] encodedHashToSend=Base64.encode(hashToSend);
+		return("<"+new String(encodedHashToSend)+"> ! msg <"+ output+">");
+	}
 
 	public void checkForTampering(String message) throws NoSuchAlgorithmException, IOException, InvalidKeyException {
 		String hmac = "";
@@ -113,17 +131,17 @@ public class PrivateConnectionListener extends Thread implements Channel {
 		SecretKeySpec keyReciever = (SecretKeySpec) Keys.readSecretKey(new File(finalPathReciever));
 		macChecker.init(keyReciever);
 		//TamperedTest
-		msg=msg+"tampered";
+		//msg=msg+"tampered";
 		macChecker.update(msg.getBytes());
 		byte[] hashToCheck=macChecker.doFinal();
 		boolean validHash=MessageDigest.isEqual(hashToCheck, Base64.decode(hmac));
 		//System.out.println(validHash);
 		if(validHash){
-			write("!ack");
+			write(generateHmac("!ack"));
 		}
 		else{
-			write("!tampered");
-		System.out.println(msg);	
+			write(generateHmac("!tampered"));
+		System.out.println("The recieved Message has been modified by a third party!!!");	
 		}
 	}
 
