@@ -93,9 +93,9 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
 				// the registry
 				this.registry.bind(this.config.getString("root_id"), remote);
 			} catch (RemoteException e) {
-				throw new RuntimeException("Error while starting nameserver.");
+				throw new RuntimeException("Error while starting ns-root nameserver.");
 			} catch (AlreadyBoundException e) {
-				throw new RuntimeException("Error while binding remote object to registry.");
+				throw new RuntimeException("Error while binding ns-root-server object to registry.");
 			}
 
 		} else {
@@ -105,16 +105,16 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
 						this.config.getInt("registry.port"));
 				this.rootNameserver = (INameserver) this.registry.lookup(this.config.getString("root_id"));
 			} catch (RemoteException e) {
-				throw new RuntimeException("Error while obtaining registry/server-remote-object.");
+				throw new RuntimeException("Error while obtaining registry/ns-root-server.");
 			} catch (NotBoundException e) {
-				throw new RuntimeException("Error while looking for server-remote-object.");
+				throw new RuntimeException("Error while looking for ns-root-server.");
 			}
 
 			try {
 				INameserver remote = (INameserver) UnicastRemoteObject.exportObject(this, 0);
 				this.rootNameserver.registerNameserver(this.config.getString("domain"), remote, remote);
 			} catch (RemoteException e) {
-				throw new RuntimeException("A wrong remote has been given");
+				throw new RuntimeException("A wrong remote has been given: "+e.getMessage());
 			} catch (AlreadyRegisteredException e) {
 				throw new RuntimeException("The declared domain is already registered");
 			} catch (InvalidDomainException e) {
@@ -167,9 +167,6 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
 		try {
 			// unexport the previously exported remote object
 			UnicastRemoteObject.unexportObject(this, true);
-			if (this.rootNameserver != null) {
-				UnicastRemoteObject.unexportObject(this.rootNameserver, true);
-			}
 		} catch (NoSuchObjectException e) {
 			System.err.println("Error while unexporting object: " + e.getMessage());
 		}
@@ -228,8 +225,13 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
 			if (this.childNameserver.containsKey(domain1)) {
 				INameserver name1 = this.childNameserver.get(domain1);
 				name1.registerNameserver(domain, nameserver, nameserverForChatserver);
+
 			} else {
-				this.childNameserver.put(domain, nameserver);
+				if (isRoot && domain.split("\\.").length > 0) {
+					throw new RemoteException("Nameservers started in the wrong sequence!");
+				} else {
+					this.childNameserver.put(domain, nameserver);
+				}
 			}
 
 		}
