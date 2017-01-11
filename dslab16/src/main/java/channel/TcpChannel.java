@@ -1,4 +1,4 @@
-package chatserver.tcp;
+package channel;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -13,7 +13,7 @@ import chatserver.Chatserver;
 /**
  * Thread to listen for incoming connections on the given socket.
  */
-public class TcpListenerThread extends Thread implements Channel {
+public class TcpChannel extends Thread implements Channel {
 
 	private PrintWriter writer;
 	private Socket clientSocket;
@@ -22,7 +22,7 @@ public class TcpListenerThread extends Thread implements Channel {
 	private PrintStream userResponseStream;
 	private BufferedReader reader;
 
-	public TcpListenerThread(Socket socket, Chatserver chatserver, PrintStream userResponseStream) {
+	public TcpChannel(Socket socket, Chatserver chatserver, PrintStream userResponseStream) {
 		this.clientSocket = socket;
 		this.chatserver = chatserver;
 		this.userResponseStream = userResponseStream;
@@ -32,7 +32,7 @@ public class TcpListenerThread extends Thread implements Channel {
 			// prepare the writer for responding to clients requests
 			this.writer = new PrintWriter(clientSocket.getOutputStream(), true);
 		} catch (IOException e) {
-			System.out.println("Failed to initialize TcpListenerThread (reader/writer)");
+			System.out.println("Failed to initialize TcpChannel (reader/writer)");
 			e.printStackTrace();
 		}
 

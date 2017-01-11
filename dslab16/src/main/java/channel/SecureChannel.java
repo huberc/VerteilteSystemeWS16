@@ -2,9 +2,9 @@ package channel;
 
 import java.io.IOException;
 
-public class ChannelSecure extends ChannelDecorator implements  Runnable{
+public class SecureChannel extends ChannelDecorator implements  Runnable{
 
-	public ChannelSecure(Channel decoratedChannel){
+	public SecureChannel(Channel decoratedChannel){
 
 		//TODO make auth
 
