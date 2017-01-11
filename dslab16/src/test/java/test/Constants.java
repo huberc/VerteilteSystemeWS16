@@ -9,6 +9,7 @@ public interface Constants {
 	 * The directory containing the test scenarios.
 	 */
 	public static final Path SCENARIO_DIRECTORY = Paths.get("src", "test", "resources");
+	//public static final Path SCENARIO_DIRECTORY = Paths.get("resources");
 
 	/**
 	 * Time to wait (in milliseconds) after starting a new component.
