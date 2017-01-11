@@ -5,7 +5,7 @@
 *	Chatserver	chatserver
 *	Client		alice.vienna.at
 
-alice.vienna.at:	!login alice.vienna.at 12345
+alice.vienna.at:	!authenticate alice.vienna.at
 >					verify("success")
 
 alice.vienna.at:	!list

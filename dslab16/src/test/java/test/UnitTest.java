@@ -1,7 +1,7 @@
 package test;
 
 import org.junit.Test;
-import util.Base64Helper;
+import security.Base64Helper;
 import static org.junit.Assert.assertEquals;
 
 

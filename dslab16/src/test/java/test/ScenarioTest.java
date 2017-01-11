@@ -66,6 +66,12 @@ public class ScenarioTest {
 	}
 
 	void runStep(Path stepFile) throws Throwable {
+
+		System.out.println(stepFile.toString());
+		if(!stepFile.toString().equals("resources/scenario/07_auth_test.txt")){
+			return;
+		}
+
 		List<String> lines = Files.readAllLines(stepFile, Charset.defaultCharset());
 		System.out.println(stepFile.getFileName().toString());
 		for (String line : lines) {

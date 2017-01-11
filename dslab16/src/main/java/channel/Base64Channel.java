@@ -1,6 +1,6 @@
 package channel;
 
-import util.Base64Helper;
+import security.Base64Helper;
 
 import java.io.IOException;
 

@@ -7,14 +7,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.Socket;
-import java.net.UnknownHostException;
+import java.net.*;
+import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.util.Stack;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -27,8 +25,12 @@ import org.bouncycastle.util.encoders.Base64;
 
 import cli.Command;
 import cli.Shell;
+import security.Base64Helper;
+import security.RSA;
+import security.RSAException;
 import util.Config;
 import util.Keys;
+import security.RandomNumberHelper;
 
 public class Client implements IClientCli, Runnable {
 
@@ -96,7 +98,6 @@ public class Client implements IClientCli, Runnable {
 		 * In that case, do not forget to terminate the Thread ordinarily.
 		 * Otherwise, the program will not exit.
 		 */
-		// (new Thread(this.shell)).start();
 		this.pool.execute(new Thread(this.shell));
 
 		/*
@@ -104,7 +105,6 @@ public class Client implements IClientCli, Runnable {
 		 * specify them correctly in the client properties file(see
 		 * client1.properties and client2.properties)
 		 */
-
 		this.userResponseStream.println(getClass().getName() + ":  up and waiting for commands!");
 
 	}
@@ -456,8 +456,50 @@ public class Client implements IClientCli, Runnable {
 	// --- Commands needed for Lab 2. Please note that you do not have to
 	// implement them for the first submission. ---
 
+	@Command
 	@Override
 	public String authenticate(String username) throws IOException {
+
+		if(haveBeenLoggedIn){
+			//TODO How to handle this?
+			return "";
+		}
+
+		//Generate client-challenge
+		byte[] clientChallenge = RandomNumberHelper.getRandomNumber();
+		byte[] clientChallengeBase64 = Base64Helper.encodeBase64(clientChallenge);
+
+		// 1st Message
+		String message = "!authenticate " + username + " " + clientChallengeBase64;
+
+		// Get Server public Key
+		String generalPath= System.getProperty("user.dir");
+		String finalPath = generalPath +"/../../"+ config.getString("chatserver.key");
+		PublicKey serverPublicKey = Keys.readPublicPEM(new File(finalPath));
+
+		try{
+
+			//Encrypt
+			RSA rsa = new RSA(serverPublicKey);
+			byte[] encryptedMessage = rsa.encrypt(message.getBytes());
+
+			//Encode
+			encryptedMessage = Base64Helper.encodeBase64(encryptedMessage);
+
+			//Send 1. message to server
+			this.socket = new Socket(this.config.getString("chatserver.host"),config.getInt("chatserver.tcp.port"));
+			this.serverWriter = new PrintWriter(this.socket.getOutputStream(), true);
+
+			this.commandQueue.add("authenticate");
+			this.serverWriter.println(encryptedMessage);
+
+			//Receive answer
+
+
+		}catch (RSAException ex){
+
+		}
+
 		// TODO Auto-generated method stub
 		return null;
 	}

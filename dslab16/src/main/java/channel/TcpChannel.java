@@ -35,7 +35,6 @@ public class TcpChannel extends Thread implements Channel {
 			System.out.println("Failed to initialize TcpChannel (reader/writer)");
 			e.printStackTrace();
 		}
-
 	}
 
 	@Override
@@ -86,7 +85,6 @@ public class TcpChannel extends Thread implements Channel {
 				} catch (IOException e) {
 					// Ignored because we cannot handle it
 				}
-
 		}
 	}
 
@@ -100,6 +98,5 @@ public class TcpChannel extends Thread implements Channel {
 	@Override
 	public void write(String output) throws IOException {
 		this.writer.println(output);
-		
 	}
 }
