@@ -135,6 +135,9 @@ public class Client implements IClientCli, Runnable {
 								config.getInt("chatserver.tcp.port"));
 						// create a writer to send messages to the server
 						this.serverWriter = new PrintWriter(this.socket.getOutputStream(), true);
+						this.incomingMessageListener = new IncomingMessageListener(this.socket, this.userResponseStream,
+								this.componentName, this);
+						this.pool.execute(incomingMessageListener);
 					} catch (UnknownHostException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -143,9 +146,6 @@ public class Client implements IClientCli, Runnable {
 						e.printStackTrace();
 					}
 					this.serverWriter.println("!login " + username + " " + password);
-					this.incomingMessageListener = new IncomingMessageListener(this.socket, this.userResponseStream,
-							this.componentName, this);
-					this.pool.execute(incomingMessageListener);
 				}
 			} else {
 				return "Wrong username or password.";
@@ -438,6 +438,9 @@ public class Client implements IClientCli, Runnable {
 			return this.commandQueue.pop();
 		else
 			return null;
+	}
+	public synchronized void setLoginStatus(boolean status){
+		this.loggedIn = status;
 	}
 
 	/**

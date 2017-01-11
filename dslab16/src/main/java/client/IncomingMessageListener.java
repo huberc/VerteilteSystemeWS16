@@ -62,6 +62,9 @@ public class IncomingMessageListener extends Thread implements Channel {
 					// this.userResponseStream.println(String.format("%s:
 					// %s",name, response.replace("!public ", "")));
 					write(response);
+				} else if (response.contains("Already logged in")) {
+					this.client.setLoginStatus(false);
+					write(response);
 				} else {
 					if (response.contains("not registered") || response.contains("successfully registered address")) {
 						synchronized (this) {

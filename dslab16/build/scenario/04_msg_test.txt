@@ -26,10 +26,10 @@ chatserver:         !users
 >                   verify(".*alice.*online.*bill.*offline.*max.*online.*tom.*online.*", T(test.util.Flag).REGEX)
 
 tom.ch:             !msg test test
->                   verify("wrong username or user not reachable.")
+>                   verify("wrong username or user not registered.")
 
 tom.ch:             !msg max.us hallo max!
->                   verify("wrong username or user not reachable.")
+>                   verify("wrong username or user not registered.")
 
 max.us:             !register localhost:4444
 >                   verify("successfully registered address for max.us.")
@@ -53,7 +53,7 @@ max.us:             !msg test test
 >                   verify("not logged in.")
 
 alice.vienna.at:    !msg max.us still online?
->                   verify("wrong username or user not reachable.")
+>                   verify("wrong username or user not registered.")
 
 chatserver:         !users
 >                   verify(".*alice.*online.*bill.*offline.*max.*offline.*tom.*online.*", T(test.util.Flag).REGEX)

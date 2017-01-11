@@ -105,8 +105,8 @@ public class Chatserver implements IChatserverCli, Runnable {
 			this.userResponseStream.println("Server is up!");
 			this.pool.execute(new Thread(this.shell));
 			for (;;) {
-				tcpChannel=new TcpChannel(this.serverSocket.accept(), this, this.userResponseStream);
-				decoratedTcpChannel=new TestChannel(tcpChannel);
+				tcpChannel = new TcpChannel(this.serverSocket.accept(), this, this.userResponseStream);
+				decoratedTcpChannel = new TestChannel(tcpChannel);
 				this.pool.execute(decoratedTcpChannel);
 				this.pool.execute(new UdpListenerThread(this.datagramSocket, this, this.userResponseStream));
 			}
@@ -305,15 +305,13 @@ public class Chatserver implements IChatserverCli, Runnable {
 		// return "Not logged in.";
 		// }
 
-		// User user = this.usermanager.getByName(username);
+		User user = this.usermanager.getByName(username);
 
-		// if (user == null || user.getAddress() == null) {
-		// // System.out.print(users.toString());
-		// return "Wrong username or user not registered.";
-		// }
+		if (user == null || !user.isLoggedIn()) {
+			return "Wrong username or user not registered.";
+		}
 
 		String[] zones = username.split("\\.");
-		
 
 		if (zones.length == 3) {
 			try {

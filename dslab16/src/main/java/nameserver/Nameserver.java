@@ -175,6 +175,7 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
 			// unbind the remote object so that a client can't find it anymore
 			if (isRoot) {
 				this.registry.unbind(this.config.getString("root_id"));
+				UnicastRemoteObject.unexportObject(this.registry, true);
 			}
 		} catch (Exception e) {
 			System.err.println("Error while unbinding object: " + e.getMessage());
@@ -274,7 +275,7 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
 
 	@Override
 	public String lookup(String username) throws RemoteException {
-		return this.userAdresses.get(username);
+		return (this.userAdresses.get(username) == null ? "Wrong username or user not registered." : this.userAdresses.get(username));
 	}
 
 }
