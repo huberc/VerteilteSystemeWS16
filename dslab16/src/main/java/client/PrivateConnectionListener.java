@@ -19,7 +19,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.bouncycastle.util.encoders.Base64;
 
-import chatserver.Channel;
+import channel.Channel;
 import util.Keys;
 
 public class PrivateConnectionListener extends Thread implements Channel {

@@ -8,7 +8,7 @@ import java.net.Socket;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import chatserver.Channel;
+import channel.Channel;
 
 public class IncomingMessageListener extends Thread implements Channel {
 

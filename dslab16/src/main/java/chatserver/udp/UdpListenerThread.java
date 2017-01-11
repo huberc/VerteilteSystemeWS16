@@ -6,7 +6,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
-import chatserver.Channel;
+import channel.Channel;
 import chatserver.Chatserver;
 
 /**

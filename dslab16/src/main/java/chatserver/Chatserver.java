@@ -15,6 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import channel.TestChannel;
 import chatserver.tcp.TcpListenerThread;
 import chatserver.udp.UdpListenerThread;
 import cli.Command;
@@ -40,7 +41,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 
 	private Usermanager usermanager = new Usermanager();
 	private TcpListenerThread tcpChannel;
-	private TestDecorator decoratedTcpChannel;
+	private TestChannel decoratedTcpChannel;
 
 	// private Map<String, Boolean> users = new ConcurrentHashMap<>();
 	// private Map<String, String> userRegister = new ConcurrentHashMap<>();
@@ -106,7 +107,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 			for (;;) {
 				//this.pool.execute(new TcpListenerThread(this.serverSocket.accept(), this, this.userResponseStream));
 				tcpChannel=new TcpListenerThread(this.serverSocket.accept(), this, this.userResponseStream);
-				decoratedTcpChannel=new TestDecorator(tcpChannel);
+				decoratedTcpChannel=new TestChannel(tcpChannel);
 				this.pool.execute(decoratedTcpChannel);
 				this.pool.execute(new UdpListenerThread(this.datagramSocket, this, this.userResponseStream));
 			}
