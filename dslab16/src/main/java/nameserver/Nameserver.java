@@ -41,10 +41,7 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
 	private Registry registry;
 	private Shell shell;
 	private ExecutorService pool;
-	// private List<INameserver> childNameserver = new ArrayList<>();
-	// private List<String> domains = new ArrayList<>();
 	private Map<String, INameserver> childNameserver = new HashMap<>();
-	// private List<User> users = new ArrayList<>();
 	private Map<String, String> userAdresses = new ConcurrentHashMap<>();
 	private String domain;
 
@@ -96,9 +93,9 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
 				// the registry
 				this.registry.bind(this.config.getString("root_id"), remote);
 			} catch (RemoteException e) {
-				throw new RuntimeException("Error while starting nameserver.", e);
+				throw new RuntimeException("Error while starting nameserver.");
 			} catch (AlreadyBoundException e) {
-				throw new RuntimeException("Error while binding remote object to registry.", e);
+				throw new RuntimeException("Error while binding remote object to registry.");
 			}
 
 		} else {
@@ -108,20 +105,20 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
 						this.config.getInt("registry.port"));
 				this.rootNameserver = (INameserver) this.registry.lookup(this.config.getString("root_id"));
 			} catch (RemoteException e) {
-				throw new RuntimeException("Error while obtaining registry/server-remote-object.", e);
+				throw new RuntimeException("Error while obtaining registry/server-remote-object.");
 			} catch (NotBoundException e) {
-				throw new RuntimeException("Error while looking for server-remote-object.", e);
+				throw new RuntimeException("Error while looking for server-remote-object.");
 			}
 
 			try {
 				INameserver remote = (INameserver) UnicastRemoteObject.exportObject(this, 0);
 				this.rootNameserver.registerNameserver(this.config.getString("domain"), remote, remote);
 			} catch (RemoteException e) {
-				throw new RuntimeException("Remote exception", e);
+				throw new RuntimeException("A wrong remote has been given");
 			} catch (AlreadyRegisteredException e) {
-				throw new RuntimeException("AlreadyRegisteredException", e);
+				throw new RuntimeException("The declared domain is already registered");
 			} catch (InvalidDomainException e) {
-				throw new RuntimeException("InvalidDomainException", e);
+				throw new RuntimeException("You must specify a correct domain");
 			}
 
 		}
@@ -276,21 +273,6 @@ public class Nameserver implements INameserverCli, Runnable, INameserver {
 	@Override
 	public String lookup(String username) throws RemoteException {
 		return this.userAdresses.get(username);
-//		String domain = username.substring(username.indexOf(".") + 1);
-
-//		if (this.childNameserver.containsKey(domain)) {
-//			return this.childNameserver.get(domain).lookup(username);
-//		} else {
-//			if (this.domain != null && this.domain.equals(domain)) {
-//				return this.userAdresses.get(username.replace("." + this.domain, ""));
-//			} else {
-//				if (this.childNameserver.containsKey(domain.substring(domain.indexOf(".") + 1))) {
-//					return this.childNameserver.get(domain.substring(domain.indexOf(".") + 1)).lookup(username);
-//				} else {
-//					throw new RemoteException("There is no address stored for the given username");
-//				}
-//			}
-//		}
 	}
 
 }
