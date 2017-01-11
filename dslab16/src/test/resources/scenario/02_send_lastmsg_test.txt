@@ -1,6 +1,8 @@
 *	Nameserver	ns-root
 *	Nameserver	ns-de
 *	Nameserver	ns-at
+*	Nameserver	ns-ch
+*	Nameserver	ns-us
 *	Nameserver	ns-vienna-at
 
 *   Chatserver  chatserver
@@ -62,4 +64,6 @@ max.us:             !exit
 ns-vienna-at:       !exit
 ns-at:              !exit
 ns-de:              !exit
+ns-ch:              !exit
+ns-us:              !exit
 ns-root:            !exit

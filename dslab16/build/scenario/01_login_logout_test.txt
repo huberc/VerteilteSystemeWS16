@@ -1,3 +1,10 @@
+*	Nameserver	ns-root
+*	Nameserver	ns-de
+*	Nameserver	ns-at
+*	Nameserver	ns-ch
+*	Nameserver	ns-us
+*	Nameserver	ns-vienna-at
+
 *   Chatserver  chatserver
 *   Client      alice.vienna.at
 *   Client      tom.ch
@@ -56,3 +63,10 @@ chatserver:         !users
 chatserver:         !exit
 alice.vienna.at:    !exit
 tom.ch:             !exit
+
+ns-vienna-at:       !exit
+ns-at:              !exit
+ns-de:              !exit
+ns-ch:              !exit
+ns-us:              !exit
+ns-root:            !exit

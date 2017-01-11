@@ -1,3 +1,7 @@
+*	Nameserver	ns-root
+*	Nameserver	ns-at
+*	Nameserver	ns-vienna-at
+
 *	Chatserver	chatserver
 *	Client		alice.vienna.at
 
@@ -12,3 +16,7 @@ chatserver:			!users
 
 chatserver: 		!exit
 alice.vienna.at:	!exit
+
+ns-vienna-at:       !exit
+ns-at:              !exit
+ns-root:            !exit
