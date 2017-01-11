@@ -36,14 +36,14 @@ tom.ch:             !lastMsg
 max.us:             !lastMsg
 >                   verify("alice.vienna.at: hi everybody!")
 
-max.us:             !register localhost:9999
+max.us:             !register 127.0.0.1:9999
 >                   verify("successfully registered address for max.us.")
 
 tom.ch:             !lookup max.us
->                   verify("localhost:9999")
+>                   verify("127.0.0.1:9999")
 
 tom.ch:             !msg max.us hi max!
->                   verify("max.us replied with !ack.")
+>                   verify("max.us responded with !ack")
 
 alice.vienna.at:    !list
 >                   verify(".*users:.*alice.*max.*tom.*", T(test.util.Flag).REGEX)

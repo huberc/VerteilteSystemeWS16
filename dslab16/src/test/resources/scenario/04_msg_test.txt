@@ -31,20 +31,20 @@ tom.ch:             !msg test test
 tom.ch:             !msg max.us hallo max!
 >                   verify("wrong username or user not registered.")
 
-max.us:             !register localhost:4444
+max.us:             !register 127.0.0.1:4444
 >                   verify("successfully registered address for max.us.")
 
 alice.vienna.at:    !lookup max.us
->                   verify("localhost:4444")
+>                   verify("127.0.0.1:4444")
 
 tom.ch:             !msg max.us hey max!
->                   verify("max.us replied with !ack.")
+>                   verify("max.us responded with !ack")
 
 alice.vienna.at:    !msg max.us i like your hair!
->                   verify("max.us replied with !ack.")
+>                   verify("max.us responded with !ack")
 
 tom.ch:             !msg max.us waddup?!
->                   verify("localhost:4444", T(test.util.Flag).NOT)
+>                   verify("127.0.0.1:4444", T(test.util.Flag).NOT)
 
 max.us:             !logout
 >                   verify("successfully logged out.")
