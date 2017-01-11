@@ -231,8 +231,6 @@ public class Client implements IClientCli, Runnable {
 				int port = Integer.parseInt(address[1]);
 
 				try {
-					if(host.equals("localhost"))
-						host = "127.0.0.1";
 					Socket privateSocket = new Socket(host, port);
 
 					PrintWriter privateSocketWriter = new PrintWriter(privateSocket.getOutputStream(), true);
@@ -360,12 +358,14 @@ public class Client implements IClientCli, Runnable {
 				}
 
 			}
-			if (privateAddress.matches("\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[:]\\d{1,5}|localhost:\\d{1,5}")) {
+			if (privateAddress.matches("\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[:]\\d{1,5}")) {
 				String[] address = (privateAddress.split("[:]"));
 				String host = address[0];
 				int port = Integer.parseInt(address[1]);
 				this.privateConnectionListener = new PrivateConnectionListener(host, port, this.userResponseStream);
 				this.pool.execute(this.privateConnectionListener);
+			}else{
+				return "Wrong adress specified, it should be in the format like 127.0.0.1:1234";
 			}
 			return null;
 		} else {
