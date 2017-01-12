@@ -3,6 +3,7 @@ package chatserver;
 import model.User;
 import org.bouncycastle.util.encoders.Base64;
 
+import security.AuthenticationException;
 import security.RSA;
 import security.RSAException;
 import util.Config;
@@ -42,7 +43,7 @@ public class AuthenticateHelper {
         this.usermanager = usermanager;
     }
 
-    public String handleMessage(String message, Socket clientsocket){
+    public String handleMessage(String message, Socket clientsocket) throws AuthenticationException{
         User user = this.usermanager.getUserBySocket(clientsocket);
 
         if(user == null || user.getAuthState() == 0) {
@@ -104,20 +105,8 @@ public class AuthenticateHelper {
 
                 return new String(encryptedMessage);
 
-            } catch (IOException ex) {
-                //TODO handle
-                System.err.println(ex);
-                ex.printStackTrace();
-            } catch (BadPaddingException e) {
-                e.printStackTrace();
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            } catch (IllegalBlockSizeException e) {
-                e.printStackTrace();
-            } catch (NoSuchPaddingException e) {
-                e.printStackTrace();
-            } catch (InvalidKeyException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
+                throw new AuthenticationException(e.getMessage());
             }
         }else if(user != null && user.getAuthState() == 1){
             byte[] messageDecoded = message.getBytes();
@@ -136,18 +125,8 @@ public class AuthenticateHelper {
                     return "Their went something wrong in the second authentication step";
                 }
 
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            } catch (NoSuchPaddingException e) {
-                e.printStackTrace();
-            } catch (InvalidAlgorithmParameterException e) {
-                e.printStackTrace();
-            } catch (InvalidKeyException e) {
-                e.printStackTrace();
-            } catch (BadPaddingException e) {
-                e.printStackTrace();
-            } catch (IllegalBlockSizeException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
+                throw new AuthenticationException(e.getMessage());
             }
 
         }else if(user != null && user.getAuthState() == 2){
@@ -155,8 +134,6 @@ public class AuthenticateHelper {
         }
 
         return "Something went wrong in the authentication process";
-
-
     }
 
 

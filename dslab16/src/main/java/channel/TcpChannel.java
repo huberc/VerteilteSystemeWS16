@@ -11,6 +11,7 @@ import channel.Channel;
 import chatserver.AuthenticateHelper;
 import chatserver.Chatserver;
 import chatserver.Usermanager;
+import security.AuthenticationException;
 
 /**
  * Thread to listen for incoming connections on the given socket.
@@ -74,13 +75,21 @@ public class TcpChannel extends Thread implements Channel {
 					default:
 						//Encrypted Authenticate call
 						response = authenticateHelper.handleMessage(request,this.clientSocket);
-
 						break;
 				}
+
+
+				
 				this.decoratedChannel.write(response);
 				// writer.println(response);
 			}
 
+		} catch (AuthenticationException e) {
+			this.userResponseStream.println("Error during the authentication: " + e.getMessage());
+			Thread.currentThread().interrupt();
+			if (this.user != null) {
+				chatserver.logoutUser(clientSocket);
+			}
 		} catch (IOException e) {
 			this.userResponseStream.println("Connection closed to clients");
 			Thread.currentThread().interrupt();
