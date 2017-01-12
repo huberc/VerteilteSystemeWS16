@@ -8,7 +8,7 @@ public class RSA {
     private Cipher cipherEncrypt = null;
     private Cipher cipherDecrypt = null;
 
-    public RSA(PublicKey key) throws RSAException{
+    public RSA(Key key) throws RSAException{
 
         try {
             cipherEncrypt= Cipher.getInstance("RSA/NONE/OAEPWithSHA256AndMGF1Padding","BC");
@@ -53,6 +53,9 @@ public class RSA {
      */
     public byte[] decrypt(byte[] data) throws RSAException{
         try{
+
+            byte[] basebata = new byte[1024];
+
             data = cipherDecrypt.doFinal(data);
         }catch (IllegalBlockSizeException ex) {
             throw new RSAException("IllegalBlockSizeException: "+ex.getMessage());

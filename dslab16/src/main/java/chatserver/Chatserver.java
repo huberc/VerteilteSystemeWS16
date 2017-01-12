@@ -372,4 +372,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 		return "";
 	}
 
+	public Usermanager getUsermanager() {
+		return usermanager;
+	}
 }

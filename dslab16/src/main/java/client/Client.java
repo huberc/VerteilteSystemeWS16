@@ -473,8 +473,7 @@ public class Client implements IClientCli, Runnable {
 		String message = "!authenticate " + username + " " + clientChallengeBase64;
 
 		// Get Server public Key
-		String generalPath= System.getProperty("user.dir");
-		String finalPath = generalPath +"/../../"+ config.getString("chatserver.key");
+		String finalPath = config.getString("chatserver.key");
 		PublicKey serverPublicKey = Keys.readPublicPEM(new File(finalPath));
 
 		try{
@@ -497,7 +496,7 @@ public class Client implements IClientCli, Runnable {
 
 
 		}catch (RSAException ex){
-
+			//TODO handle this
 		}
 
 		// TODO Auto-generated method stub

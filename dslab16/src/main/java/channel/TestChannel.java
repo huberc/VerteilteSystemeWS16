@@ -36,40 +36,4 @@ public class TestChannel extends ChannelDecorator implements  Runnable{
 	public void run() {
 		this.decoratedChannel.run();
 	}
-
-//	public static String hmacSHA256 (String value){
-		//byte [] keyBytes = Keys.readSecretKey(file)
-//	}
-	
-	public static void main (String [] args) throws IOException, NoSuchAlgorithmException, InvalidKeyException {
-		//get secret Key
-		String msg= "YOYO!";
-		String generalPath= System.getProperty("user.dir");
-		String finalPath=generalPath+"\\keys\\hmac.key";
-		//keys.readSecretKey actually returns a SecretKeyspec=>cast
-		SecretKeySpec key=(SecretKeySpec) Keys.readSecretKey(new File(finalPath));
-		//get instance of Algorithm and initialize with key
-		Mac mac = Mac.getInstance("HmacSHA256");
-		mac.init(key);
-		//sign in message-bytes
-		mac.update(msg.getBytes());
-		//compute finalHash
-		byte[] hashToSend=mac.doFinal();
-		byte[] encodedHashToSend=Base64.encode(hashToSend);
-		//System.out.println(hashToSend.toString());
-		
-		//recieving Side:
-		String msgRecieved="YOYO!";
-		Mac macChecker= Mac.getInstance("HmacSHA256");
-		String generalPathReciever= System.getProperty("user.dir");
-		String finalPathReciever=generalPathReciever+"\\keys\\hmac.key";
-		SecretKeySpec keyReciever=(SecretKeySpec) Keys.readSecretKey(new File(finalPathReciever));
-		macChecker.init(keyReciever);
-		macChecker.update(msgRecieved.getBytes());
-		byte[] hashToCheck=macChecker.doFinal();
-		boolean validHash=MessageDigest.isEqual(hashToCheck, Base64.decode(encodedHashToSend));
-		System.out.println(validHash);
-	}
-	
-	
 }

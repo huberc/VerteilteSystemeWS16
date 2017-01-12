@@ -38,11 +38,12 @@ public class IncomingMessageListener extends Thread implements Channel {
 				.compile("\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[:]\\d{1,5}|([\\w\\.\\-]+):(\\d{1,3})");
 		Matcher matcher;
 		try {
-			while (!(Thread.currentThread().isInterrupted()) && (response = this.serverReader.readLine()) != null) {
+			while (!(Thread.currentThread().isInterrupted()) && (response = read()) != null) {
 				matcher = pattern.matcher(response);
 				if (matcher.find()) {
 					String lastCommand = this.client.popLastCommand();
 					String nextToLastCommand = this.client.popLastCommand();
+
 					if (lastCommand.equals("lookup")) {
 						if (nextToLastCommand == null || !nextToLastCommand.equals("msg")) {
 							// this.userResponseStream.println(String.format("%s:

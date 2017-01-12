@@ -69,7 +69,7 @@ public class ScenarioTest {
 
 		System.out.println(stepFile.toString());
 		if(!stepFile.toString().equals("resources/scenario/07_auth_test.txt")){
-			return;
+			//return;
 		}
 
 		List<String> lines = Files.readAllLines(stepFile, Charset.defaultCharset());

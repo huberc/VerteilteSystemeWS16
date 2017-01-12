@@ -10,6 +10,13 @@ public class User {
     private Socket socket;
     private Boolean loggedIn = false;
 
+    /*
+        0 ... not authenticated
+        1 ... !authenticate sended
+        2 ... successfully authenticated
+     */
+    private Integer authState = 0;
+
     public User(Integer id, String name, String password) {
         this.id = id;
         this.name = name;
@@ -62,6 +69,14 @@ public class User {
 
     public void setSocket(Socket socket) {
         this.socket = socket;
+    }
+
+    public Integer getAuthState() {
+        return authState;
+    }
+
+    public void setAuthState(Integer authState) {
+        this.authState = authState;
     }
 
     public boolean equals(Object object) {

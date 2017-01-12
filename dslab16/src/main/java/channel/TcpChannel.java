@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 
 import channel.Channel;
+import chatserver.AuthenticateHelper;
 import chatserver.Chatserver;
 
 /**
@@ -21,11 +22,13 @@ public class TcpChannel extends Thread implements Channel {
 	private Chatserver chatserver;
 	private PrintStream userResponseStream;
 	private BufferedReader reader;
+	private AuthenticateHelper authenticateHelper;
 
 	public TcpChannel(Socket socket, Chatserver chatserver, PrintStream userResponseStream) {
 		this.clientSocket = socket;
 		this.chatserver = chatserver;
 		this.userResponseStream = userResponseStream;
+		this.authenticateHelper = new AuthenticateHelper(chatserver);
 		try {
 			// prepare the input reader for the socket
 			reader = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream()));
@@ -44,29 +47,34 @@ public class TcpChannel extends Thread implements Channel {
 			String request;
 			// read client requests
 			while ((request = read())!= null) {
+
 				String[] commandParts = request.split("\\s");
 				String response = "";
 
 				switch (commandParts[0]) {
-				case "!login":
-					response = chatserver.loginUser(commandParts[1], commandParts[2], this.clientSocket);
-					break;
-				case "!logout":
-					response = chatserver.logoutUser(this.clientSocket);
-					break;
-				case "!send":
-					String msg = request.substring(commandParts[0].length() + 1, request.length());
-					response = this.chatserver.sendPublicMessage(this.clientSocket, msg);
-					break;
-				case "!lookup":
-					response = chatserver.lookup(commandParts[1]);
-					break;
-				case "!register":
-					response = chatserver.registerUserAddress(this.clientSocket, commandParts[1]);
-					break;
-				default:
-					response = "Unknown request: " + request;
-					break;
+					case "!login":
+						response = chatserver.loginUser(commandParts[1], commandParts[2], this.clientSocket);
+						break;
+					case "!logout":
+						response = chatserver.logoutUser(this.clientSocket);
+						break;
+					case "!send":
+						String msg = request.substring(commandParts[0].length() + 1, request.length());
+						response = this.chatserver.sendPublicMessage(this.clientSocket, msg);
+						break;
+					case "!lookup":
+						response = chatserver.lookup(commandParts[1]);
+						break;
+					case "!register":
+						response = chatserver.registerUserAddress(this.clientSocket, commandParts[1]);
+						break;
+					default:
+
+						//Encrypted Authenticate call
+						response = authenticateHelper.handleMessage(request,this.clientSocket);
+
+						//response = "Unknown request: " + request;
+						break;
 				}
 				write(response);
 				// writer.println(response);
