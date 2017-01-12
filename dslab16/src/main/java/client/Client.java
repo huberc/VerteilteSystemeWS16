@@ -139,7 +139,7 @@ public class Client implements IClientCli, Runnable {
 				if (this.haveBeenLoggedIn) {
 					this.loggedIn = true;
 					this.haveBeenLoggedIn = true;
-					this.serverWriter.println("!login " + username + " " + password);
+					this.serverWriter.println(new String(encodeBase64("!login " + username + " " + password)));
 				} else {
 					this.loggedIn = true;
 					this.haveBeenLoggedIn = true;
@@ -158,7 +158,7 @@ public class Client implements IClientCli, Runnable {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-					this.serverWriter.println("!login " + username + " " + password);
+					this.serverWriter.println(new String(encodeBase64("!login " + username + " " + password)));
 				}
 			} else {
 				return "Wrong username or password.";
@@ -175,7 +175,7 @@ public class Client implements IClientCli, Runnable {
 	public String logout() throws IOException {
 		if (this.loggedIn) {
 			this.commandQueue.add("logout");
-			this.serverWriter.println("!logout");
+			this.serverWriter.println(new String(encodeBase64("!logout")));
 			this.loggedIn = false;
 			return null;
 		} else {
@@ -189,7 +189,7 @@ public class Client implements IClientCli, Runnable {
 	public String send(String message) throws IOException {
 		if (this.loggedIn) {
 			this.commandQueue.add("send");
-			this.serverWriter.println("!send " + message);
+			this.serverWriter.println(new String(encodeBase64("!send " + message)));
 			return null;
 		} else {
 			return "Not logged in.";
@@ -351,7 +351,7 @@ public class Client implements IClientCli, Runnable {
 	public String lookup(String username) throws IOException {
 		if (this.loggedIn) {
 			this.commandQueue.add("lookup");
-			this.serverWriter.println("!lookup " + username);
+			this.serverWriter.println(new String(encodeBase64("!lookup " + username)));
 			return null;
 		} else {
 			return "Not logged in.";
@@ -363,7 +363,7 @@ public class Client implements IClientCli, Runnable {
 	public String register(String privateAddress) throws IOException {
 		if (this.loggedIn) {
 			this.commandQueue.add("register");
-			this.serverWriter.println("!register " + privateAddress);
+			this.serverWriter.println(new String(encodeBase64("!register " + privateAddress)));
 			synchronized (this.incomingMessageListener) {
 				try {
 					this.incomingMessageListener.wait();
@@ -475,9 +475,6 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	public String authenticate(String username) throws IOException {
 
-		/*
-		 * if(haveBeenLoggedIn){ //TODO How to handle this? return ""; }
-		 */
 		if (!loggedIn) {
 
 			// Generate client-challenge
@@ -496,22 +493,23 @@ public class Client implements IClientCli, Runnable {
 
 
 				// Encrypt
-				//RSA/NONE/OAEPWithSHA256AndMGF1Padding
 				try {
 					Cipher cipher = Cipher.getInstance("RSA/NONE/OAEPWithSHA256AndMGF1Padding");
 
 					cipher.init(Cipher.ENCRYPT_MODE, serverPublicKey);
 					byte[] encryptedMessage = cipher.doFinal(message.getBytes());
 					// Encode
-					encryptedMessage = Base64.encode(encryptedMessage);
+					encryptedMessage = encodeBase64(encryptedMessage);
 
 					// Send 1. message to server
-					this.socket = new Socket(this.config.getString("chatserver.host"),
-							config.getInt("chatserver.tcp.port"));
+					if(!this.haveBeenLoggedIn) {
+						this.socket = new Socket(this.config.getString("chatserver.host"), config.getInt("chatserver.tcp.port"));
+						this.incomingMessageListener = new IncomingMessageListener(this.socket, this.userResponseStream,
+								this.componentName, this);
+						this.pool.execute(incomingMessageListener);
+					}
 					this.serverWriter = new PrintWriter(this.socket.getOutputStream(), true);
-					this.incomingMessageListener = new IncomingMessageListener(this.socket, this.userResponseStream,
-							this.componentName, this);
-					this.pool.execute(incomingMessageListener);
+
 
 					this.commandQueue.add("authenticate");
 					this.serverWriter.println(new String(encryptedMessage));
@@ -524,10 +522,10 @@ public class Client implements IClientCli, Runnable {
 
 					}
 
-					byte[] messageDecoded = Base64.decode(this.messageFromServer);
+					byte[] messageDecoded = this.messageFromServer.getBytes();
 
 					// Get Server public Key
-					String finalPath1 = config.getString("keys.dir")+username+".pem";
+					String finalPath1 = config.getString("keys.dir")+"/"+username+".pem";
 					RSAPrivateKey userPrivateKey = (RSAPrivateKey) Keys.readPrivatePEM(new File(finalPath1));
 
 					cipher.init(Cipher.DECRYPT_MODE, userPrivateKey);
@@ -572,7 +570,6 @@ public class Client implements IClientCli, Runnable {
 					}
 
 
-
 				} catch (NoSuchAlgorithmException e) {
 					e.printStackTrace();
 				} catch (NoSuchPaddingException e) {
@@ -586,21 +583,31 @@ public class Client implements IClientCli, Runnable {
 				} catch (InvalidAlgorithmParameterException e) {
 					e.printStackTrace();
 				}
-			//RSA rsa = new RSA(serverPublicKey);
-				//byte[] encryptedMessage = rsa.encrypt(message.getBytes());
-
-
-
-				// Receive answer
-
 			
+		}else{
+			return "Already logged in!";
 		}
-		// TODO Auto-generated method stub
-					return null;
+
+		return null;
 	}
 
 	public synchronized void setMessageFromServer(String message){
 		this.messageFromServer = message;
 	}
+
+	private byte[] encodeBase64(String message){
+		return Base64.encode(message.getBytes());
+	}
+	private byte[] encodeBase64(byte[] message){
+		return Base64.encode(message);
+	}
+
+	private byte[] decodeBase64(String message){
+		return Base64.decode(message.getBytes());
+	}
+	private byte[] decodeBase64(byte[] message){
+		return Base64.decode(message);
+	}
+
 
 }

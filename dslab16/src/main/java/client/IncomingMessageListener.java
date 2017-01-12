@@ -9,6 +9,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import channel.Channel;
+import org.bouncycastle.util.encoders.Base64;
 
 public class IncomingMessageListener extends Thread implements Channel {
 
@@ -120,7 +121,7 @@ public class IncomingMessageListener extends Thread implements Channel {
 	public String read() throws IOException {
 		String input;
 		input = this.serverReader.readLine();
-		return input;
+		return new String(Base64.decode(input));
 	}
 
 	@Override

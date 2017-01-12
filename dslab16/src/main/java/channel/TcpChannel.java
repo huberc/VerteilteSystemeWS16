@@ -40,7 +40,7 @@ public class TcpChannel extends Thread implements Channel {
 			System.out.println("Failed to initialize TcpChannel (reader/writer)");
 			e.printStackTrace();
 		}
-		decoratedChannel = new TestChannel(this);
+		this.decoratedChannel = new Base64Channel(this);
 	}
 
 	@Override
@@ -51,8 +51,6 @@ public class TcpChannel extends Thread implements Channel {
 			// read client requests
 			while ((request = this.decoratedChannel.read())!= null) {
 				
-				// Warum nicht einfach hier decoden und base64 decoden ?
-				// dann ham ma hoit kan decorator oba wos sois
 				String[] commandParts = request.split("\\s");
 				String response = "";
 
@@ -74,7 +72,6 @@ public class TcpChannel extends Thread implements Channel {
 						response = chatserver.registerUserAddress(this.clientSocket, commandParts[1]);
 						break;
 					default:
-
 						//Encrypted Authenticate call
 						response = authenticateHelper.handleMessage(request,this.clientSocket);
 

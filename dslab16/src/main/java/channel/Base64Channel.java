@@ -1,5 +1,6 @@
 package channel;
 
+import org.bouncycastle.util.encoders.Base64;
 import security.Base64Helper;
 
 import java.io.IOException;
@@ -12,12 +13,12 @@ public class Base64Channel extends ChannelDecorator{
 	
 	@Override
 	public void write(String text) throws IOException{
-		super.write(new String(Base64Helper.encodeBase64(text.getBytes())));
+		super.write(new String(Base64.encode(text.getBytes())));
 	}
 	
 	@Override
 	public String read() throws IOException{
-		return new String(Base64Helper.decodeBase64(super.read().getBytes()));
+		return new String(Base64.decode(super.read().getBytes()));
 	}
 
 	@Override

@@ -24,6 +24,7 @@ import model.User;
 import nameserver.INameserverForChatserver;
 import nameserver.exceptions.AlreadyRegisteredException;
 import nameserver.exceptions.InvalidDomainException;
+import org.bouncycastle.util.encoders.Base64;
 import util.Config;
 
 public class Chatserver implements IChatserverCli, Runnable {
@@ -250,6 +251,7 @@ public class Chatserver implements IChatserverCli, Runnable {
 		// Logout
 		user.setLoggedIn(false);
 		user.setAddress(null);
+		user.setAuthState(0);
 
 		return "Successfully logged out.";
 	}
@@ -266,13 +268,6 @@ public class Chatserver implements IChatserverCli, Runnable {
 	public synchronized String registerUserAddress(Socket clientSocket, String address) {
 
 		User currentUser = this.usermanager.getLoggedInUserBySocket(clientSocket);
-		//
-		// // Check if logged in
-		// // if (currentUser == null) {
-		// // return "Not logged in.";
-		// // }
-		//
-		// currentUser.setAddress(address);
 
 		try {
 			this.nameserverForChatserver.registerUser(currentUser.getName(), address);
@@ -296,13 +291,6 @@ public class Chatserver implements IChatserverCli, Runnable {
 	 */
 	public String lookup(String username) {
 
-		// User currentUser = usermanager.getLoggedInUserBySocket(clientSocket);
-
-		// Check if logged in
-		// NO need anymore, has already been checked
-		// if (currentUser == null) {
-		// return "Not logged in.";
-		// }
 
 		User user = this.usermanager.getByName(username);
 
@@ -346,13 +334,8 @@ public class Chatserver implements IChatserverCli, Runnable {
 	 */
 	public String sendPublicMessage(Socket clientSocket, String message) {
 
-		// Check if user is logged in
 
 		User currentUser = this.usermanager.getLoggedInUserBySocket(clientSocket);
-		// NO need anymore, has already been checked
-		/*
-		 * if (currentUser == null) { return "Not logged in."; }
-		 */
 
 		// Write to other clients
 		try {

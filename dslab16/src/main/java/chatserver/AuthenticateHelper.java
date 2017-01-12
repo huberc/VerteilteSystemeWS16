@@ -49,7 +49,7 @@ public class AuthenticateHelper {
             try {
                 //Decode message
                 //byte[] messageDecoded = Base64Helper.decodeBase64(message.getBytes());
-                byte[] messageDecoded = Base64.decode(message);
+                byte[] messageDecoded = message.getBytes();
 
                 // Get Server public Key
                 String finalPath = config.getString("key");
@@ -75,7 +75,7 @@ public class AuthenticateHelper {
                 }
 
                 // Get User public Key
-                String finalPathPublicKey = config.getString("keys.dir")+ username.trim() + ".pub.pem";
+                String finalPathPublicKey = config.getString("keys.dir")+"/"+ username.trim() + ".pub.pem";
                 RSAPublicKey userPublicKey = (RSAPublicKey) Keys.readPublicPEM(new File(finalPathPublicKey));
 
                 cipher.init(Cipher.ENCRYPT_MODE, userPublicKey);
@@ -99,10 +99,10 @@ public class AuthenticateHelper {
                 String messageToSend ="!ok "+ new String(Base64.encode(challenge)) +" " + new String(serverChallengeBase64) + " " + new String(Base64.encode(key.getEncoded()))
                         + " " + new String(Base64.encode(ivspec.getIV()));
                 byte[] encryptedMessage = cipher.doFinal(messageToSend.getBytes());
-                byte[] encodedMessageToSend = Base64.encode(encryptedMessage);
+                //byte[] encodedMessageToSend = Base64.encode(encryptedMessage);
 
 
-                return new String(encodedMessageToSend);
+                return new String(encryptedMessage);
 
             } catch (IOException ex) {
                 //TODO handle
@@ -120,7 +120,7 @@ public class AuthenticateHelper {
                 e.printStackTrace();
             }
         }else if(user != null && user.getAuthState() == 1){
-            byte[] messageDecoded = Base64.decode(message);
+            byte[] messageDecoded = message.getBytes();
 
             try {
                 Cipher cipher1 = Cipher.getInstance("AES/CTR/NoPadding");
@@ -130,6 +130,7 @@ public class AuthenticateHelper {
 
                 if(Arrays.equals(this.serverChallenge,messageDecrypted)){
                     user.setLoggedIn(true);
+                    user.setAuthState(2);
                     return "Succesfully authenticated with the chatserver";
                 }else{
                     return "Their went something wrong in the second authentication step";
@@ -149,9 +150,13 @@ public class AuthenticateHelper {
                 e.printStackTrace();
             }
 
+        }else if(user != null && user.getAuthState() == 2){
+            return "You are already authenticated with the server!";
         }
 
-        return "";
+        return "Something went wrong in the authentication process";
+
+
     }
 
 
