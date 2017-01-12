@@ -83,12 +83,14 @@ public class Client implements IClientCli, Runnable {
 		this.userRequestStream = userRequestStream;
 		this.userResponseStream = userResponseStream;
 		this.userConfig = userConfig;
+
 		/*
 		 * First, create a new Shell instance and provide the name of the
 		 * component, an InputStream as well as an OutputStream. If you want to
 		 * test the application manually, simply use System.in and System.out.
 		 */
 		this.shell = new Shell(componentName, userRequestStream, userResponseStream);
+
 		/*
 		 * Next, register all commands the Shell should support. In this example
 		 * this class implements all desired commands.
@@ -134,6 +136,7 @@ public class Client implements IClientCli, Runnable {
 			} catch (Exception e) {
 				return "Wrong username or password.";
 			}
+
 			if (pw == null) {
 				return "Wrong username or password.";
 			} else if (password.equals(pw)) {
@@ -145,19 +148,15 @@ public class Client implements IClientCli, Runnable {
 					this.loggedIn = true;
 					this.haveBeenLoggedIn = true;
 					try {
-						this.socket = new Socket(this.config.getString("chatserver.host"),
-								config.getInt("chatserver.tcp.port"));
+						this.socket = new Socket(this.config.getString("chatserver.host"), config.getInt("chatserver.tcp.port"));
 						// create a writer to send messages to the server
 						this.serverWriter = new PrintWriter(this.socket.getOutputStream(), true);
-						this.incomingMessageListener = new IncomingMessageListener(this.socket, this.userResponseStream,
-								this.componentName, this);
+						this.incomingMessageListener = new IncomingMessageListener(this.socket, this.userResponseStream,this.componentName, this);
 						this.pool.execute(incomingMessageListener);
 					} catch (UnknownHostException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						return "Error while login: " + e.getMessage();
 					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						return "Error while login: " + e.getMessage();
 					}
 					this.serverWriter.println(new String(encodeBase64("!login " + username + " " + password)));
 				}
@@ -195,7 +194,6 @@ public class Client implements IClientCli, Runnable {
 		} else {
 			return "Not logged in.";
 		}
-
 	}
 
 	@Override
@@ -216,9 +214,10 @@ public class Client implements IClientCli, Runnable {
 		// send request-packet to server
 		this.datagramSocket.send(packet);
 
-		buffer = new byte[1024];
 		// create a fresh packet
+		buffer = new byte[1024];
 		packet = new DatagramPacket(buffer, buffer.length);
+
 		// wait for response-packet from server
 		this.datagramSocket.receive(packet);
 
@@ -571,18 +570,8 @@ public class Client implements IClientCli, Runnable {
 					}
 
 
-				} catch (NoSuchAlgorithmException e) {
-					e.printStackTrace();
-				} catch (NoSuchPaddingException e) {
-					e.printStackTrace();
-				} catch (InvalidKeyException e) {
-					e.printStackTrace();
-				} catch (BadPaddingException e) {
-					e.printStackTrace();
-				} catch (IllegalBlockSizeException e) {
-					e.printStackTrace();
-				} catch (InvalidAlgorithmParameterException e) {
-					e.printStackTrace();
+				} catch (Exception e) {
+					return "Error while authenticate: " + e.getMessage();
 				}
 			
 		}else{
