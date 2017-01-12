@@ -139,7 +139,7 @@ public class Client implements IClientCli, Runnable {
 				if (this.haveBeenLoggedIn) {
 					this.loggedIn = true;
 					this.haveBeenLoggedIn = true;
-					this.serverWriter.println(new String(encodeBase64("!login " + username + " " + password)));
+					this.serverWriter.println("!login " + username + " " + password);
 				} else {
 					this.loggedIn = true;
 					this.haveBeenLoggedIn = true;
@@ -158,7 +158,7 @@ public class Client implements IClientCli, Runnable {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-					this.serverWriter.println(new String(encodeBase64("!login " + username + " " + password)));
+					this.serverWriter.println("!login " + username + " " + password);
 				}
 			} else {
 				return "Wrong username or password.";
@@ -175,7 +175,7 @@ public class Client implements IClientCli, Runnable {
 	public String logout() throws IOException {
 		if (this.loggedIn) {
 			this.commandQueue.add("logout");
-			this.serverWriter.println(new String(encodeBase64("!logout")));
+			this.serverWriter.println("!logout");
 			this.loggedIn = false;
 			return null;
 		} else {
@@ -189,7 +189,7 @@ public class Client implements IClientCli, Runnable {
 	public String send(String message) throws IOException {
 		if (this.loggedIn) {
 			this.commandQueue.add("send");
-			this.serverWriter.println(new String(encodeBase64("!send " + message)));
+			this.serverWriter.println("!send " + message);
 			return null;
 		} else {
 			return "Not logged in.";
@@ -351,7 +351,7 @@ public class Client implements IClientCli, Runnable {
 	public String lookup(String username) throws IOException {
 		if (this.loggedIn) {
 			this.commandQueue.add("lookup");
-			this.serverWriter.println(new String(encodeBase64("!lookup " + username)));
+			this.serverWriter.println("!lookup " + username);
 			return null;
 		} else {
 			return "Not logged in.";
@@ -363,7 +363,7 @@ public class Client implements IClientCli, Runnable {
 	public String register(String privateAddress) throws IOException {
 		if (this.loggedIn) {
 			this.commandQueue.add("register");
-			this.serverWriter.println(new String(encodeBase64("!register " + privateAddress)));
+			this.serverWriter.println("!register " + privateAddress);
 			synchronized (this.incomingMessageListener) {
 				try {
 					this.incomingMessageListener.wait();
