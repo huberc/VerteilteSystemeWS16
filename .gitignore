@@ -4,3 +4,8 @@ out/*
 **/*.class
 **/*.iml
 dslab16/src/test/java/test/Constants.java
+dslab16/src/main/resources/chatserver.properties
+
+dslab16/src/main/resources/client.properties
+
+dslab16/src/test/java/test/ScenarioTest.java

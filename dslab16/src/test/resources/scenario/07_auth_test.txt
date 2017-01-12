@@ -1,22 +1,74 @@
 *	Nameserver	ns-root
+*	Nameserver	ns-de
 *	Nameserver	ns-at
+*	Nameserver	ns-ch
+*	Nameserver	ns-us
 *	Nameserver	ns-vienna-at
 
-*	Chatserver	chatserver
-*	Client		alice.vienna.at
+*   Chatserver  chatserver
+*   Client      alice.vienna.at
+*   Client      tom.ch
+*   Client      max.us
 
-alice.vienna.at:	!authenticate alice.vienna.at
->					verify("success")
+alice.vienna.at:    !authenticate alice.vienna.at
+>                   verify("Succesfully authenticated with the chatserver")
 
-alice.vienna.at:	!list
->					verify(".*alice.*", T(test.util.Flag).REGEX)
+tom.ch:             !list
+>                   verify(".*Online users:.*alice.vienna.at.*", T(test.util.Flag).REGEX)
 
-chatserver:			!users
->					verify(".*alice.*online.*bill.*offline.*", T(test.util.Flag).REGEX)
+tom.ch:             !authenticate tom.ch
+>                   verify("Succesfully authenticated with the chatserver")
 
-chatserver: 		!exit
-alice.vienna.at:	!exit
+max.us:             !authenticate max.us
+>                   verify("Succesfully authenticated with the chatserver")
+
+chatserver:         !users
+>                   verify(".*alice.*online.*bill.*offline.*max.*online.*tom.*online.*", T(test.util.Flag).REGEX)
+
+alice.vienna.at:    !send hi everybody!
+
+alice.vienna.at:    !lastMsg
+>                   verify("no message received!")
+
+tom.ch:             !lastMsg
+>                   verify("alice.vienna.at: hi everybody!")
+
+max.us:             !lastMsg
+>                   verify("alice.vienna.at: hi everybody!")
+
+max.us:             !register 127.0.0.1:9999
+>                   verify("successfully registered address for max.us.")
+
+tom.ch:             !lookup max.us
+>                   verify("127.0.0.1:9999")
+
+tom.ch:             !msg max.us hi max!
+>                   verify("max.us responded with !ack")
+
+alice.vienna.at:    !list
+>                   verify(".*users:.*alice.*max.*tom.*", T(test.util.Flag).REGEX)
+
+tom.ch:             !logout
+>                   verify("successfully logged out.")
+
+tom.ch:             !exit
+
+chatserver:         !users
+>                   verify(".*alice.*online.*bill.*offline.*max.*online.*tom.*offline.*", T(test.util.Flag).REGEX)
+
+alice.vienna.at:    !list
+>                   verify(".*users:.*alice.*max.*", T(test.util.Flag).REGEX)
+
+alice.vienna.at:    !list
+>                   verify("tom.ch", T(test.util.Flag).NOT)
+
+chatserver:         !exit
+alice.vienna.at:    !exit
+max.us:             !exit
 
 ns-vienna-at:       !exit
 ns-at:              !exit
+ns-de:              !exit
+ns-ch:              !exit
+ns-us:              !exit
 ns-root:            !exit
