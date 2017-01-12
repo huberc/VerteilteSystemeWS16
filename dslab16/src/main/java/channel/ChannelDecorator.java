@@ -16,7 +16,7 @@ public abstract class ChannelDecorator implements Channel {
 	}
 	
 	@Override
-	public byte[] read() throws Exception{
+	public String read() throws Exception{
 		return this.decoratedChannel.read();
 	}
 	

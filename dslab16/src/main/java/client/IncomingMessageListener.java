@@ -8,14 +8,8 @@ import java.net.Socket;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import channel.Base64Channel;
 import channel.Channel;
-import channel.SecureChannel;
 import org.bouncycastle.util.encoders.Base64;
-import security.AuthenticationException;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 
 public class IncomingMessageListener extends Thread implements Channel {
 
@@ -24,7 +18,6 @@ public class IncomingMessageListener extends Thread implements Channel {
 	private String name;
 	private Client client;
 	private BufferedReader serverReader;
-	private Channel decoratorChannel;
 
 	public IncomingMessageListener(Socket socket, PrintStream userPrintStream, String name, Client client) {
 		this.socket = socket;
@@ -46,63 +39,51 @@ public class IncomingMessageListener extends Thread implements Channel {
 				.compile("\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[.]\\d{1,3}[:]\\d{1,5}|([\\w\\.\\-]+):(\\d{1,3})");
 		Matcher matcher;
 		try {
-			if(this.client.isLoggedIn()) {
-				while (!(Thread.currentThread().isInterrupted()) && (response = new String(read())) != null) {
-					matcher = pattern.matcher(response);
-					if (matcher.find()) {
-						String lastCommand = this.client.popLastCommand();
-						String nextToLastCommand = this.client.popLastCommand();
+			while (!(Thread.currentThread().isInterrupted()) && (response = read()) != null) {
+				matcher = pattern.matcher(response);
+				if (matcher.find()) {
+					String lastCommand = this.client.popLastCommand();
+					String nextToLastCommand = this.client.popLastCommand();
 
-						if (lastCommand.equals("lookup")) {
-							if (nextToLastCommand == null || !nextToLastCommand.equals("msg")) {
-								// this.userResponseStream.println(String.format("%s:
-								// %s",name, response));
-								write(response);
-							} else if (nextToLastCommand.equals("msg")) {
-								synchronized (this) {
-									this.client.setPrivateAddressReceiver(matcher.group(0));
-									notify();
-								}
-							}
-						}
-
-					} else if (response.contains("!public ")) {
-						this.client.setLastPublicMessage(response.replace("!public ", ""));
-						response.replace("!public", "");
-						// this.userResponseStream.println(String.format("%s:
-						// %s",name, response.replace("!public ", "")));
-						write(response);
-					} else if (response.contains("Already logged in")) {
-						this.client.setLoginStatus(false);
-						write(response);
-					} else {
-						String lastCommand = this.client.popLastCommand();
-						if (response.contains("not registered") || response.contains("successfully registered address")) {
+					if (lastCommand.equals("lookup")) {
+						if (nextToLastCommand == null || !nextToLastCommand.equals("msg")) {
+							// this.userResponseStream.println(String.format("%s:
+							// %s",name, response));
+							write(response);
+						} else if (nextToLastCommand.equals("msg")) {
 							synchronized (this) {
+								this.client.setPrivateAddressReceiver(matcher.group(0));
 								notify();
 							}
-							write(response);
-						} else if (lastCommand.equals("authenticate")) {
-							this.client.setLastMessageFromServer(response);
-							synchronized (this) {
-								notify();
-							}
+						}
+					}
 
-						} else {
-							write(response);
+				} else if (response.contains("!public ")) {
+					this.client.setLastPublicMessage(response.replace("!public ", ""));
+					response.replace("!public", "");
+					// this.userResponseStream.println(String.format("%s:
+					// %s",name, response.replace("!public ", "")));
+					write(response);
+				} else if (response.contains("Already logged in")) {
+					this.client.setLoginStatus(false);
+					write(response);
+				} else {
+					String lastCommand = this.client.popLastCommand();
+					if (response.contains("not registered") || response.contains("successfully registered address")) {
+						synchronized (this) {
+							notify();
+						}
+						write(response);
+					}else if(lastCommand.equals("authenticate")){
+						this.client.setMessageFromServer(response);
+						synchronized (this) {
+							notify();
 						}
 
+					}else {
+						write(response);
 					}
-				}
-			}else{
 
-				byte[] response1;
-
-				while (!(Thread.currentThread().isInterrupted()) && (response1 = read()) != null) {
-					this.client.setMessageFromServer(response1);
-					synchronized (this) {
-						notify();
-					}
 				}
 			}
 		} catch (IOException e) {
@@ -134,19 +115,11 @@ public class IncomingMessageListener extends Thread implements Channel {
 		}
 	}
 
-	public void setDecoratorChannel(SecretKey secretKey, IvParameterSpec ivParameterSpec){
-		try {
-			this.decoratorChannel = new Base64Channel(new SecureChannel(this, secretKey, ivParameterSpec));
-		} catch (AuthenticationException e) {
-			e.printStackTrace();
-		}
-	}
-
 	@Override
-	public byte[] read() throws IOException {
+	public String read() throws IOException {
 		String input;
 		input = this.serverReader.readLine();
-		return (input != null ? Base64.decode(input) : null);
+		return input;
 	}
 
 	@Override

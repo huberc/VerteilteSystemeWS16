@@ -40,7 +40,7 @@ public class TcpChannel extends Thread implements Channel {
 		this.chatserver = chatserver;
 		this.userResponseStream = userResponseStream;
 		this.usermanager = usermanager;
-		this.authenticateHelper = new AuthenticateHelper(chatserver,usermanager, this);
+		this.authenticateHelper = new AuthenticateHelper(chatserver,usermanager,this);
 		try {
 			// prepare the input reader for the socket
 			reader = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream()));
@@ -50,9 +50,7 @@ public class TcpChannel extends Thread implements Channel {
 			System.out.println("Failed to initialize TcpChannel (reader/writer)");
 			e.printStackTrace();
 		}
-		this.decoratedChannel = new Base64Channel(this);
-
-
+		this.decoratedChannel = new TestChannel(this);
 	}
 
 	@Override
@@ -60,49 +58,37 @@ public class TcpChannel extends Thread implements Channel {
 
 		try {
 			String request;
-			byte[] request1;
 			// read client requests
-			User user = this.usermanager.getUserBySocket(this.clientSocket);
-			if(user == null || user.getAuthState() < 2){
-				while ((request1 = this.decoratedChannel.read()) != null) {
-					String response = authenticateHelper.handleMessage(request1, this.clientSocket);
-					this.decoratedChannel.write(response);
-				}
-			}else if(user.getAuthState() == 2){
-				if(this.secretKey!= null && this.ivParameterSpec != null)
-				this.decoratedChannel1 = new Base64Channel(new SecureChannel(this, this.secretKey, this.ivParameterSpec));
-			}else {
-				if (this.decoratedChannel1 != null) {
-					while ((request = new String(this.decoratedChannel1.read())) != null) {
+			while ((request = this.decoratedChannel.read())!= null) {
 
-						String[] commandParts = request.split("\\s");
-						String response = "";
+				String[] commandParts = request.split("\\s");
+				String response = "";
 
-						switch (commandParts[0]) {
-							case "!login":
-								response = chatserver.loginUser(commandParts[1], commandParts[2], this.clientSocket);
-								break;
-							case "!logout":
-								response = chatserver.logoutUser(this.clientSocket);
-								break;
-							case "!send":
-								String msg = request.substring(commandParts[0].length() + 1, request.length());
-								response = this.chatserver.sendPublicMessage(this.clientSocket, msg);
-								break;
-							case "!lookup":
-								response = chatserver.lookup(commandParts[1]);
-								break;
-							case "!register":
-								response = chatserver.registerUserAddress(this.clientSocket, commandParts[1]);
-								break;
-							default:
-								//Encrypted Authenticate call
-								break;
-						}
-						this.decoratedChannel.write(response);
-						// writer.println(response);
-					}
+				switch (commandParts[0]) {
+					case "!login":
+						response = chatserver.loginUser(commandParts[1], commandParts[2], this.clientSocket);
+						break;
+					case "!logout":
+						response = chatserver.logoutUser(this.clientSocket);
+						break;
+					case "!send":
+						String msg = request.substring(commandParts[0].length() + 1, request.length());
+						response = this.chatserver.sendPublicMessage(this.clientSocket, msg);
+						break;
+					case "!lookup":
+						response = chatserver.lookup(commandParts[1]);
+						break;
+					case "!register":
+						response = chatserver.registerUserAddress(this.clientSocket, commandParts[1]);
+						break;
+					default:
+						//Encrypted Authenticate call
+						response = authenticateHelper.handleMessage(request,this.clientSocket);
+
+						break;
 				}
+				this.decoratedChannel.write(response);
+				// writer.println(response);
 			}
 
 		} catch (AuthenticationException e) {
@@ -138,10 +124,10 @@ public class TcpChannel extends Thread implements Channel {
 	}
 
 	@Override
-	public byte[] read() throws IOException {
+	public String read() throws IOException {
 		String input;
 		input=this.reader.readLine();
-		return input.getBytes();
+		return input;
 	}
 
 	@Override

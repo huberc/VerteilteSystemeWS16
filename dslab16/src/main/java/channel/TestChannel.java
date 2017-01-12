@@ -27,7 +27,7 @@ public class TestChannel extends ChannelDecorator implements  Runnable{
 	}
 	
 	@Override
-	public byte[] read() throws IOException{
+	public String read() throws Exception{
 		return super.read();
 	}
 

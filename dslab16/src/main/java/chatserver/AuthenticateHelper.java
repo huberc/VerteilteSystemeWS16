@@ -36,14 +36,14 @@ public class AuthenticateHelper {
         this.tcpChannel = tcpChannel;
     }
 
-    public String handleMessage(byte[] message, Socket clientsocket) throws AuthenticationException {
+    public String handleMessage(String message, Socket clientsocket) throws AuthenticationException {
         User user = this.usermanager.getUserBySocket(clientsocket);
 
         if(user == null || user.getAuthState() == 0) {
             try {
                 //Decode message
                 //byte[] messageDecoded = Base64Helper.decodeBase64(message.getBytes());
-                byte[] messageDecoded = message;
+                byte[] messageDecoded = Base64.decode(message);
 
                 // Get Server public Key
                 String finalPath = config.getString("key");
@@ -93,16 +93,16 @@ public class AuthenticateHelper {
                 String messageToSend ="!ok "+ new String(Base64.encode(challenge)) +" " + new String(serverChallengeBase64) + " " + new String(Base64.encode(key.getEncoded()))
                         + " " + new String(Base64.encode(ivspec.getIV()));
                 byte[] encryptedMessage = cipher.doFinal(messageToSend.getBytes());
-                //byte[] encodedMessageToSend = Base64.encode(encryptedMessage);
+                byte[] encodedMessageToSend = Base64.encode(encryptedMessage);
 
 
-                return new String(encryptedMessage);
+                return new String(encodedMessageToSend);
 
             } catch (Exception e) {
                 throw new AuthenticationException(e.getMessage());
             }
         }else if(user != null && user.getAuthState() == 1){
-            byte[] messageDecoded = message;
+            byte[] messageDecoded = Base64.decode(message);
 
             try {
                 Cipher cipher1 = Cipher.getInstance("AES/CTR/NoPadding");
@@ -129,6 +129,8 @@ public class AuthenticateHelper {
         }
 
         return "Something went wrong in the authentication process";
+
+
     }
 
 

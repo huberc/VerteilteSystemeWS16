@@ -40,16 +40,16 @@ public class SecureChannel extends ChannelDecorator implements  Runnable{
 	}
 	
 	@Override
-	public byte[] read() throws Exception{
+	public String read() throws Exception{
 
-		byte[] data = super.read();
+		byte[] data = super.read().getBytes();
 
 		//Init cipher
 		IvParameterSpec ivSpec = new IvParameterSpec(data);
 		cipherDecrypt.init(Cipher.DECRYPT_MODE, key, ivSpec);
 
 		//Decrypt
-		return cipherEncrypt.doFinal(data);
+		return new String(cipherEncrypt.doFinal(data));
 	}
 
 	@Override

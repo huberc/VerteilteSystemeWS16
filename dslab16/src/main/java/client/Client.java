@@ -37,12 +37,8 @@ import org.bouncycastle.util.encoders.Base64;
 
 import cli.Command;
 import cli.Shell;
-import security.Base64Helper;
-import security.RSA;
-import security.RSAException;
 import util.Config;
 import util.Keys;
-import security.RandomNumberHelper;
 
 public class Client implements IClientCli, Runnable {
 
@@ -63,8 +59,7 @@ public class Client implements IClientCli, Runnable {
 	private Config userConfig;
 	private boolean loggedIn = false;
 	private boolean haveBeenLoggedIn = false;
-	private byte[] messageFromServer;
-	private String lastMessageFromServer;
+	private String messageFromServer;
 
 	/**
 	 * @param componentName
@@ -490,8 +485,6 @@ public class Client implements IClientCli, Runnable {
 			String finalPath = config.getString("chatserver.key");
 			RSAPublicKey serverPublicKey = (RSAPublicKey) Keys.readPublicPEM(new File(finalPath));
 
-
-
 				// Encrypt
 				try {
 					Cipher cipher = Cipher.getInstance("RSA/NONE/OAEPWithSHA256AndMGF1Padding");
@@ -522,7 +515,7 @@ public class Client implements IClientCli, Runnable {
 
 					}
 
-					byte[] messageDecoded = this.messageFromServer;
+					byte[] messageDecoded = this.messageFromServer.getBytes();
 
 					// Get Server public Key
 					String finalPath1 = config.getString("keys.dir")+"/"+username+".pem";
@@ -558,8 +551,7 @@ public class Client implements IClientCli, Runnable {
 
 							}
 
-
-							if(this.lastMessageFromServer.equals("Succesfully authenticated with the chatserver")){
+							if(this.messageFromServer.equals("Succesfully authenticated with the chatserver")){
 								this.loggedIn = true;
 								this.userResponseStream.println(this.messageFromServer);
 							}
@@ -581,11 +573,8 @@ public class Client implements IClientCli, Runnable {
 		return null;
 	}
 
-	public synchronized void setMessageFromServer(byte[] message){
+	public synchronized void setMessageFromServer(String message){
 		this.messageFromServer = message;
-	}
-	public synchronized void setLastMessageFromServer(String message){
-		this.lastMessageFromServer = message;
 	}
 
 	private byte[] encodeBase64(String message){
