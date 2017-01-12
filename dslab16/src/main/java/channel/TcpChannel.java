@@ -10,6 +10,7 @@ import java.net.Socket;
 import channel.Channel;
 import chatserver.AuthenticateHelper;
 import chatserver.Chatserver;
+import chatserver.Usermanager;
 
 /**
  * Thread to listen for incoming connections on the given socket.
@@ -23,12 +24,13 @@ public class TcpChannel extends Thread implements Channel {
 	private PrintStream userResponseStream;
 	private BufferedReader reader;
 	private AuthenticateHelper authenticateHelper;
+	private Channel decoratedChannel;
 
-	public TcpChannel(Socket socket, Chatserver chatserver, PrintStream userResponseStream) {
+	public TcpChannel(Socket socket, Chatserver chatserver, PrintStream userResponseStream, Usermanager usermanager) {
 		this.clientSocket = socket;
 		this.chatserver = chatserver;
 		this.userResponseStream = userResponseStream;
-		this.authenticateHelper = new AuthenticateHelper(chatserver);
+		this.authenticateHelper = new AuthenticateHelper(chatserver,usermanager);
 		try {
 			// prepare the input reader for the socket
 			reader = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream()));
@@ -38,6 +40,7 @@ public class TcpChannel extends Thread implements Channel {
 			System.out.println("Failed to initialize TcpChannel (reader/writer)");
 			e.printStackTrace();
 		}
+		decoratedChannel = new TestChannel(this);
 	}
 
 	@Override
@@ -46,8 +49,10 @@ public class TcpChannel extends Thread implements Channel {
 		try {
 			String request;
 			// read client requests
-			while ((request = read())!= null) {
-
+			while ((request = this.decoratedChannel.read())!= null) {
+				
+				// Warum nicht einfach hier decoden und base64 decoden ?
+				// dann ham ma hoit kan decorator oba wos sois
 				String[] commandParts = request.split("\\s");
 				String response = "";
 
@@ -73,10 +78,9 @@ public class TcpChannel extends Thread implements Channel {
 						//Encrypted Authenticate call
 						response = authenticateHelper.handleMessage(request,this.clientSocket);
 
-						//response = "Unknown request: " + request;
 						break;
 				}
-				write(response);
+				this.decoratedChannel.write(response);
 				// writer.println(response);
 			}
 

@@ -67,14 +67,22 @@ public class IncomingMessageListener extends Thread implements Channel {
 					this.client.setLoginStatus(false);
 					write(response);
 				} else {
+					String lastCommand = this.client.popLastCommand();
 					if (response.contains("not registered") || response.contains("successfully registered address")) {
 						synchronized (this) {
 							notify();
 						}
+						write(response);
+					}else if(lastCommand.equals("authenticate")){
+						this.client.setMessageFromServer(response);
+						synchronized (this) {
+							notify();
+						}
+
+					}else {
+						write(response);
 					}
-					// this.userResponseStream.println(String.format("%s:
-					// %s%n",name, response));
-					write(response);
+
 				}
 			}
 		} catch (IOException e) {

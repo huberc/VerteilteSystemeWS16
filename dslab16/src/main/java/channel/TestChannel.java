@@ -23,17 +23,16 @@ public class TestChannel extends ChannelDecorator implements  Runnable{
 	
 	@Override
 	public void write(String response) throws IOException{
-		
-		decoratedChannel.write(response+"***decorated***");
+		super.write(response);
 	}
 	
 	@Override
 	public String read() throws IOException{
-		return this.decoratedChannel.read();
+		return super.read();
 	}
 
 	@Override
 	public void run() {
-		this.decoratedChannel.run();
+		super.run();
 	}
 }

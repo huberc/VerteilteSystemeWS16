@@ -59,4 +59,16 @@ public class Usermanager {
 
         return null;
     }
+
+    public User getUserBySocket(Socket socket){
+        if(socket == null) return null;
+
+        for(User u : getUsers()){
+            if(u.getSocket() != null && u.getSocket().equals(socket)){
+                return u;
+            }
+        }
+
+        return null;
+    }
 }

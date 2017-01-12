@@ -9,16 +9,28 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.net.*;
 import java.nio.file.Paths;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Arrays;
 import java.util.Stack;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.bouncycastle.util.encoders.Base64;
@@ -51,6 +63,7 @@ public class Client implements IClientCli, Runnable {
 	private Config userConfig;
 	private boolean loggedIn = false;
 	private boolean haveBeenLoggedIn = false;
+	private String messageFromServer;
 
 	/**
 	 * @param componentName
@@ -150,7 +163,7 @@ public class Client implements IClientCli, Runnable {
 			} else {
 				return "Wrong username or password.";
 			}
-			
+
 			return null;
 		} else {
 			return "Already logged in.";
@@ -214,7 +227,7 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	@Command
 	public String msg(String username, String message) throws IOException {
-		
+
 		if (this.loggedIn) {
 			this.commandQueue.add("msg");
 			this.lookup(username);
@@ -236,29 +249,31 @@ public class Client implements IClientCli, Runnable {
 					PrintWriter privateSocketWriter = new PrintWriter(privateSocket.getOutputStream(), true);
 					BufferedReader privateSocketReader = new BufferedReader(
 							new InputStreamReader(privateSocket.getInputStream()));
-					String output=message+ "|from: "+username;
-					String generalPath= System.getProperty("user.dir");
-					String finalPath=generalPath+"\\keys\\hmac.key";
-					//keys.readSecretKey actually returns a SecretKeyspec=>cast
-					SecretKeySpec key=(SecretKeySpec) Keys.readSecretKey(new File(finalPath));
-					//get instance of Algorithm and initialize with key
+					String output = message + "|from: " + username;
+					String generalPath = System.getProperty("user.dir");
+					String finalPath = generalPath + "\\keys\\hmac.key";
+					// keys.readSecretKey actually returns a SecretKeyspec=>cast
+					SecretKeySpec key = (SecretKeySpec) Keys.readSecretKey(new File(finalPath));
+					// get instance of Algorithm and initialize with key
 					Mac mac = Mac.getInstance("HmacSHA256");
 					mac.init(key);
-					//sign in message-bytes
+					// sign in message-bytes
 					mac.update(output.getBytes());
-					//compute finalHash
-					byte[] hashToSend=mac.doFinal();
-					//add Base-64 encoding
-					byte[] encodedHashToSend=Base64.encode(hashToSend);
-					privateSocketWriter.println("<"+new String(encodedHashToSend)+"> ! msg <"+ output+">");
-					//privateSocketWriter.println("!tampered"+ new String(encodedHashToSend));
+					// compute finalHash
+					byte[] hashToSend = mac.doFinal();
+					// add Base-64 encoding
+					byte[] encodedHashToSend = Base64.encode(hashToSend);
+					privateSocketWriter.println("<" + new String(encodedHashToSend) + "> ! msg <" + output + ">");
+					// privateSocketWriter.println("!tampered"+ new
+					// String(encodedHashToSend));
 					String response;
 					if ((response = privateSocketReader.readLine()) != null) {
 						if (checkForTampering(response).equals("!ack")) {
 							this.userResponseStream.println(username + " responded with !ack");
 						}
-						if (checkForTampering(response).equals("!tampered")){
-							this.userResponseStream.println("Sending"+"<"+hashToSend+"> ! tampered <"+output+">");
+						if (checkForTampering(response).equals("!tampered")) {
+							this.userResponseStream
+									.println("Sending" + "<" + hashToSend + "> ! tampered <" + output + ">");
 						}
 					}
 					privateSocketWriter.close();
@@ -311,27 +326,26 @@ public class Client implements IClientCli, Runnable {
 		}
 		hmac = hmac.substring(0, hmac.length() - 1);
 		msg = msg.substring(0, msg.length() - 1);
-		//System.out.println(hmac + "\n" + msg);
+		// System.out.println(hmac + "\n" + msg);
 
 		Mac macChecker = Mac.getInstance("HmacSHA256");
 		String generalPathReciever = System.getProperty("user.dir");
 		String finalPathReciever = generalPathReciever + "\\keys\\hmac.key";
 		SecretKeySpec keyReciever = (SecretKeySpec) Keys.readSecretKey(new File(finalPathReciever));
 		macChecker.init(keyReciever);
-		//TamperedTest
-		//msg=msg+"tampered";
+		// TamperedTest
+		// msg=msg+"tampered";
 		macChecker.update(msg.getBytes());
-		byte[] hashToCheck=macChecker.doFinal();
-		boolean validHash=MessageDigest.isEqual(hashToCheck, Base64.decode(hmac));
-		//System.out.println(validHash);
-		if(validHash){
-		return "!ack";
-		}
-		else{
-		return "!tampered";	
+		byte[] hashToCheck = macChecker.doFinal();
+		boolean validHash = MessageDigest.isEqual(hashToCheck, Base64.decode(hmac));
+		// System.out.println(validHash);
+		if (validHash) {
+			return "!ack";
+		} else {
+			return "!tampered";
 		}
 	}
-	
+
 	@Override
 	@Command
 	public String lookup(String username) throws IOException {
@@ -364,7 +378,7 @@ public class Client implements IClientCli, Runnable {
 				int port = Integer.parseInt(address[1]);
 				this.privateConnectionListener = new PrivateConnectionListener(host, port, this.userResponseStream);
 				this.pool.execute(this.privateConnectionListener);
-			}else{
+			} else {
 				return "Wrong adress specified, it should be in the format like 127.0.0.1:1234";
 			}
 			return null;
@@ -411,12 +425,12 @@ public class Client implements IClientCli, Runnable {
 			// Preserve interrupt status
 			Thread.currentThread().interrupt();
 		}
-		if(userRequestStream!=null)
-		this.userRequestStream.close();
-		if(serverWriter!=null)
-		this.serverWriter.close();
-		if(serverWriter!=null)
-		this.socket.close();
+		if (userRequestStream != null)
+			this.userRequestStream.close();
+		if (serverWriter != null)
+			this.serverWriter.close();
+		if (serverWriter != null)
+			this.socket.close();
 		if (this.datagramSocket != null) {
 			this.datagramSocket.close();
 		}
@@ -439,7 +453,8 @@ public class Client implements IClientCli, Runnable {
 		else
 			return null;
 	}
-	public synchronized void setLoginStatus(boolean status){
+
+	public synchronized void setLoginStatus(boolean status) {
 		this.loggedIn = status;
 	}
 
@@ -460,47 +475,132 @@ public class Client implements IClientCli, Runnable {
 	@Override
 	public String authenticate(String username) throws IOException {
 
-		if(haveBeenLoggedIn){
-			//TODO How to handle this?
-			return "";
+		/*
+		 * if(haveBeenLoggedIn){ //TODO How to handle this? return ""; }
+		 */
+		if (!loggedIn) {
+
+			// Generate client-challenge
+			SecureRandom secureRandom = new SecureRandom();
+			final byte[] number = new byte[32];
+			secureRandom.nextBytes(number);
+			byte[] clientChallengeBase64 = Base64.encode(number);
+
+			// 1st Message
+			String message = "!authenticate " + username + " " + new String(clientChallengeBase64);
+
+			// Get Server public Key
+			String finalPath = config.getString("chatserver.key");
+			RSAPublicKey serverPublicKey = (RSAPublicKey) Keys.readPublicPEM(new File(finalPath));
+
+
+
+				// Encrypt
+				//RSA/NONE/OAEPWithSHA256AndMGF1Padding
+				try {
+					Cipher cipher = Cipher.getInstance("RSA/NONE/OAEPWithSHA256AndMGF1Padding");
+
+					cipher.init(Cipher.ENCRYPT_MODE, serverPublicKey);
+					byte[] encryptedMessage = cipher.doFinal(message.getBytes());
+					// Encode
+					encryptedMessage = Base64.encode(encryptedMessage);
+
+					// Send 1. message to server
+					this.socket = new Socket(this.config.getString("chatserver.host"),
+							config.getInt("chatserver.tcp.port"));
+					this.serverWriter = new PrintWriter(this.socket.getOutputStream(), true);
+					this.incomingMessageListener = new IncomingMessageListener(this.socket, this.userResponseStream,
+							this.componentName, this);
+					this.pool.execute(incomingMessageListener);
+
+					this.commandQueue.add("authenticate");
+					this.serverWriter.println(new String(encryptedMessage));
+					synchronized (this.incomingMessageListener) {
+						try {
+							this.incomingMessageListener.wait();
+						} catch (InterruptedException e) {
+							this.userResponseStream.println("Error in client server communication");
+						}
+
+					}
+
+					byte[] messageDecoded = Base64.decode(this.messageFromServer);
+
+					// Get Server public Key
+					String finalPath1 = config.getString("keys.dir")+username+".pem";
+					RSAPrivateKey userPrivateKey = (RSAPrivateKey) Keys.readPrivatePEM(new File(finalPath1));
+
+					cipher.init(Cipher.DECRYPT_MODE, userPrivateKey);
+					byte[] messageDecrypted = cipher.doFinal(messageDecoded);
+					// Encode
+
+					String[] message1 = new String(messageDecrypted).split(" ");
+					if(message1.length == 5 && message1[0].equals("!ok")){
+						byte challenge[] = Base64.decode(message1[1].getBytes());
+						if(Arrays.equals(number, challenge)){
+							byte serverChallenge[] = Base64.decode(message1[2].getBytes());
+							SecretKey key = new SecretKeySpec(Base64.decode(message1[3].getBytes()), "AES");
+							IvParameterSpec ivSpec = new IvParameterSpec(Base64.decode(message1[4].getBytes()));
+
+							Cipher cipher1 = Cipher.getInstance("AES/CTR/NoPadding");
+							cipher1.init(Cipher.ENCRYPT_MODE, key, ivSpec);
+							byte[] encryptedLastMessage = cipher1.doFinal(serverChallenge);
+
+							byte encodedLastMessage[] = Base64.encode(encryptedLastMessage);
+
+							this.commandQueue.add("authenticate");
+							this.serverWriter.println(new String(encodedLastMessage));
+
+							synchronized (this.incomingMessageListener) {
+								try {
+									this.incomingMessageListener.wait();
+								} catch (InterruptedException e) {
+									this.userResponseStream.println("Error in client server communication");
+								}
+
+							}
+
+
+							if(this.messageFromServer.equals("Succesfully authenticated with the chatserver")){
+								this.loggedIn = true;
+								this.userResponseStream.println(this.messageFromServer);
+							}
+
+						}else {
+							return "Something went wrong during the first authentication state";
+						}
+					}
+
+
+
+				} catch (NoSuchAlgorithmException e) {
+					e.printStackTrace();
+				} catch (NoSuchPaddingException e) {
+					e.printStackTrace();
+				} catch (InvalidKeyException e) {
+					e.printStackTrace();
+				} catch (BadPaddingException e) {
+					e.printStackTrace();
+				} catch (IllegalBlockSizeException e) {
+					e.printStackTrace();
+				} catch (InvalidAlgorithmParameterException e) {
+					e.printStackTrace();
+				}
+			//RSA rsa = new RSA(serverPublicKey);
+				//byte[] encryptedMessage = rsa.encrypt(message.getBytes());
+
+
+
+				// Receive answer
+
+			
 		}
-
-		//Generate client-challenge
-		byte[] clientChallenge = RandomNumberHelper.getRandomNumber();
-		byte[] clientChallengeBase64 = Base64Helper.encodeBase64(clientChallenge);
-
-		// 1st Message
-		String message = "!authenticate " + username + " " + clientChallengeBase64;
-
-		// Get Server public Key
-		String finalPath = config.getString("chatserver.key");
-		PublicKey serverPublicKey = Keys.readPublicPEM(new File(finalPath));
-
-		try{
-
-			//Encrypt
-			RSA rsa = new RSA(serverPublicKey);
-			byte[] encryptedMessage = rsa.encrypt(message.getBytes());
-
-			//Encode
-			encryptedMessage = Base64Helper.encodeBase64(encryptedMessage);
-
-			//Send 1. message to server
-			this.socket = new Socket(this.config.getString("chatserver.host"),config.getInt("chatserver.tcp.port"));
-			this.serverWriter = new PrintWriter(this.socket.getOutputStream(), true);
-
-			this.commandQueue.add("authenticate");
-			this.serverWriter.println(encryptedMessage);
-
-			//Receive answer
-
-
-		}catch (RSAException ex){
-			//TODO handle this
-		}
-
 		// TODO Auto-generated method stub
-		return null;
+					return null;
+	}
+
+	public synchronized void setMessageFromServer(String message){
+		this.messageFromServer = message;
 	}
 
 }

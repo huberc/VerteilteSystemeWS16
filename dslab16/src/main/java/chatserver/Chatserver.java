@@ -105,9 +105,8 @@ public class Chatserver implements IChatserverCli, Runnable {
 			this.userResponseStream.println("Server is up!");
 			this.pool.execute(new Thread(this.shell));
 			for (;;) {
-				tcpChannel = new TcpChannel(this.serverSocket.accept(), this, this.userResponseStream);
-				decoratedTcpChannel = new TestChannel(tcpChannel);
-				this.pool.execute(decoratedTcpChannel);
+				tcpChannel = new TcpChannel(this.serverSocket.accept(), this, this.userResponseStream, this.usermanager);
+				this.pool.execute(tcpChannel);
 				this.pool.execute(new UdpListenerThread(this.datagramSocket, this, this.userResponseStream));
 			}
 		} catch (IOException e) {

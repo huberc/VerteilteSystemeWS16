@@ -12,16 +12,16 @@ public class Base64Channel extends ChannelDecorator{
 	
 	@Override
 	public void write(String text) throws IOException{
-		decoratedChannel.write(new String(Base64Helper.encodeBase64(text.getBytes())));
+		super.write(new String(Base64Helper.encodeBase64(text.getBytes())));
 	}
 	
 	@Override
 	public String read() throws IOException{
-		return new String(Base64Helper.decodeBase64(this.decoratedChannel.read().getBytes()));
+		return new String(Base64Helper.decodeBase64(super.read().getBytes()));
 	}
 
 	@Override
 	public void run() {
-		this.decoratedChannel.run();
+		super.run();
 	}
 }

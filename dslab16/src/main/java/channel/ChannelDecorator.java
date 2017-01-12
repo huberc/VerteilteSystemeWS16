@@ -4,7 +4,7 @@ import java.io.IOException;
 
 public abstract class ChannelDecorator implements Channel {
 
-	protected Channel decoratedChannel;
+	protected final Channel decoratedChannel;
 
 	public ChannelDecorator(Channel decoratedChannel) {
 		this.decoratedChannel = decoratedChannel;
