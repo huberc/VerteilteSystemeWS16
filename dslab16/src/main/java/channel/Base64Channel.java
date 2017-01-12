@@ -17,8 +17,8 @@ public class Base64Channel extends ChannelDecorator{
 	}
 	
 	@Override
-	public String read() throws IOException{
-		return new String(Base64.decode(super.read().getBytes()));
+	public byte[] read() throws Exception{
+		return Base64.decode(super.read());
 	}
 
 	@Override

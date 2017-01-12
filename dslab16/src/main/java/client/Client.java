@@ -63,7 +63,8 @@ public class Client implements IClientCli, Runnable {
 	private Config userConfig;
 	private boolean loggedIn = false;
 	private boolean haveBeenLoggedIn = false;
-	private String messageFromServer;
+	private byte[] messageFromServer;
+	private String lastMessageFromServer;
 
 	/**
 	 * @param componentName
@@ -522,7 +523,7 @@ public class Client implements IClientCli, Runnable {
 
 					}
 
-					byte[] messageDecoded = this.messageFromServer.getBytes();
+					byte[] messageDecoded = this.messageFromServer;
 
 					// Get Server public Key
 					String finalPath1 = config.getString("keys.dir")+"/"+username+".pem";
@@ -559,7 +560,7 @@ public class Client implements IClientCli, Runnable {
 							}
 
 
-							if(this.messageFromServer.equals("Succesfully authenticated with the chatserver")){
+							if(this.lastMessageFromServer.equals("Succesfully authenticated with the chatserver")){
 								this.loggedIn = true;
 								this.userResponseStream.println(this.messageFromServer);
 							}
@@ -591,8 +592,11 @@ public class Client implements IClientCli, Runnable {
 		return null;
 	}
 
-	public synchronized void setMessageFromServer(String message){
+	public synchronized void setMessageFromServer(byte[] message){
 		this.messageFromServer = message;
+	}
+	public synchronized void setLastMessageFromServer(String message){
+		this.lastMessageFromServer = message;
 	}
 
 	private byte[] encodeBase64(String message){
@@ -609,5 +613,8 @@ public class Client implements IClientCli, Runnable {
 		return Base64.decode(message);
 	}
 
+	public boolean isLoggedIn(){
+		return this.loggedIn;
+	}
 
 }

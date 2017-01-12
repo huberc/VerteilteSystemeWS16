@@ -9,13 +9,15 @@ import javax.crypto.spec.IvParameterSpec;
 public class SecureChannel extends ChannelDecorator implements  Runnable{
 
 	private SecretKey key;
-	private Cipher cipherDecrypt, cipherEncrypt;
+    private IvParameterSpec ivParameterSpec;
+    private Cipher cipherDecrypt, cipherEncrypt;
 
-	public SecureChannel(Channel decoratedChannel,SecretKey key) throws AuthenticationException{
+	public SecureChannel(Channel decoratedChannel,SecretKey key, IvParameterSpec ivParameterSpec) throws AuthenticationException{
 
 		super(decoratedChannel);
 
 		this.key = key;
+        this.ivParameterSpec = ivParameterSpec;
 
 		try {
 			cipherDecrypt = Cipher.getInstance("AES/CTR/NoPadding");
@@ -25,23 +27,22 @@ public class SecureChannel extends ChannelDecorator implements  Runnable{
 		}
 	}
 	
-	@Override
+
 	public void write(byte[] response) throws Exception{
 
 		//Init cipher
-		IvParameterSpec ivSpec = new IvParameterSpec(response);
-		cipherEncrypt.init(Cipher.ENCRYPT_MODE, key, ivSpec);
+		cipherEncrypt.init(Cipher.ENCRYPT_MODE, key, this.ivParameterSpec);
 
 		//Encrypt
 		byte[] encryptedMessage = cipherEncrypt.doFinal(response);
 
-		decoratedChannel.write(new String(encryptedMessage));
+		super.write(new String(encryptedMessage));
 	}
 	
 	@Override
 	public byte[] read() throws Exception{
 
-		byte[] data = this.decoratedChannel.read().getBytes();
+		byte[] data = super.read();
 
 		//Init cipher
 		IvParameterSpec ivSpec = new IvParameterSpec(data);
@@ -53,6 +54,6 @@ public class SecureChannel extends ChannelDecorator implements  Runnable{
 
 	@Override
 	public void run() {
-		this.decoratedChannel.run();
+		super.run();
 	}
 }

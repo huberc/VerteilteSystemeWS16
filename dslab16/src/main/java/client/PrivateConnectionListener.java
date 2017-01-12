@@ -160,10 +160,10 @@ public class PrivateConnectionListener extends Thread implements Channel {
 	}
 
 	@Override
-	public String read() throws IOException {
+	public byte[] read() throws IOException {
 		String input;
 		input = reader.readLine();
-		return input;
+		return input.getBytes();
 	}
 
 }

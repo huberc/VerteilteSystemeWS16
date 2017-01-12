@@ -1,28 +1,19 @@
 package chatserver;
 
+import channel.TcpChannel;
 import model.User;
 import org.bouncycastle.util.encoders.Base64;
 
 import security.AuthenticationException;
-import security.RSA;
-import security.RSAException;
 import util.Config;
 import util.Keys;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import java.io.File;
-import java.io.IOException;
 import java.net.Socket;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -36,21 +27,23 @@ public class AuthenticateHelper {
     private byte serverChallenge[] = new byte[32];
     private SecretKey secretKey;
     private IvParameterSpec ivParameterSpec;
+    private TcpChannel tcpChannel;
 
-    public AuthenticateHelper(Chatserver chatserver, Usermanager usermanager) {
+    public AuthenticateHelper(Chatserver chatserver, Usermanager usermanager, TcpChannel tcpChannel) {
         this.chatserver = chatserver;
         config = new Config("chatserver");
         this.usermanager = usermanager;
+        this.tcpChannel = tcpChannel;
     }
 
-    public String handleMessage(String message, Socket clientsocket) throws AuthenticationException{
+    public String handleMessage(byte[] message, Socket clientsocket) throws AuthenticationException {
         User user = this.usermanager.getUserBySocket(clientsocket);
 
         if(user == null || user.getAuthState() == 0) {
             try {
                 //Decode message
                 //byte[] messageDecoded = Base64Helper.decodeBase64(message.getBytes());
-                byte[] messageDecoded = message.getBytes();
+                byte[] messageDecoded = message;
 
                 // Get Server public Key
                 String finalPath = config.getString("key");
@@ -60,7 +53,7 @@ public class AuthenticateHelper {
 
                 cipher.init(Cipher.DECRYPT_MODE, serverPrivateKey);
                 byte[] messageDecrypted = cipher.doFinal(messageDecoded);
-                // Encode
+
 
                 String[] message1 = new String(messageDecrypted).split(" ");
                 String username = "";
@@ -109,7 +102,7 @@ public class AuthenticateHelper {
                 throw new AuthenticationException(e.getMessage());
             }
         }else if(user != null && user.getAuthState() == 1){
-            byte[] messageDecoded = message.getBytes();
+            byte[] messageDecoded = message;
 
             try {
                 Cipher cipher1 = Cipher.getInstance("AES/CTR/NoPadding");
@@ -120,6 +113,8 @@ public class AuthenticateHelper {
                 if(Arrays.equals(this.serverChallenge,messageDecrypted)){
                     user.setLoggedIn(true);
                     user.setAuthState(2);
+                    this.tcpChannel.setIvParameterSpec(this.ivParameterSpec);
+                    this.tcpChannel.setSecretKey(this.secretKey);
                     return "Succesfully authenticated with the chatserver";
                 }else{
                     return "Their went something wrong in the second authentication step";
