@@ -1,16 +1,12 @@
 package channel;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.net.Socket;
-
-import channel.Channel;
 import chatserver.AuthenticateHelper;
 import chatserver.Chatserver;
 import chatserver.Usermanager;
+import security.AuthenticationException;
+
+import java.io.*;
+import java.net.Socket;
 
 /**
  * Thread to listen for incoming connections on the given socket.
@@ -80,7 +76,12 @@ public class TcpChannel extends Thread implements Channel {
 				this.decoratedChannel.write(response);
 				// writer.println(response);
 			}
-
+		} catch (AuthenticationException e) {
+			this.userResponseStream.println("Error during the authentication: " + e.getMessage());
+			Thread.currentThread().interrupt();
+			if (this.user != null) {
+				chatserver.logoutUser(clientSocket);
+			}
 		} catch (IOException e) {
 			this.userResponseStream.println("Connection closed to clients");
 			Thread.currentThread().interrupt();
