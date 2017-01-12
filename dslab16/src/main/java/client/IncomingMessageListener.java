@@ -9,7 +9,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import channel.Channel;
-import org.bouncycastle.util.encoders.Base64;
 
 public class IncomingMessageListener extends Thread implements Channel {
 
@@ -93,6 +92,8 @@ public class IncomingMessageListener extends Thread implements Channel {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
+			// this.userResponseStream.println("Connection closed to
+			// chatserver");
 		} finally {
 			if (this.socket != null && !this.socket.isClosed())
 				try {

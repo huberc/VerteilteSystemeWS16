@@ -37,8 +37,12 @@ import org.bouncycastle.util.encoders.Base64;
 
 import cli.Command;
 import cli.Shell;
+import security.Base64Helper;
+import security.RSA;
+import security.RSAException;
 import util.Config;
 import util.Keys;
+import security.RandomNumberHelper;
 
 public class Client implements IClientCli, Runnable {
 
@@ -78,14 +82,12 @@ public class Client implements IClientCli, Runnable {
 		this.userRequestStream = userRequestStream;
 		this.userResponseStream = userResponseStream;
 		this.userConfig = userConfig;
-
 		/*
 		 * First, create a new Shell instance and provide the name of the
 		 * component, an InputStream as well as an OutputStream. If you want to
 		 * test the application manually, simply use System.in and System.out.
 		 */
 		this.shell = new Shell(componentName, userRequestStream, userResponseStream);
-
 		/*
 		 * Next, register all commands the Shell should support. In this example
 		 * this class implements all desired commands.
@@ -131,7 +133,6 @@ public class Client implements IClientCli, Runnable {
 			} catch (Exception e) {
 				return "Wrong username or password.";
 			}
-
 			if (pw == null) {
 				return "Wrong username or password.";
 			} else if (password.equals(pw)) {
@@ -143,15 +144,19 @@ public class Client implements IClientCli, Runnable {
 					this.loggedIn = true;
 					this.haveBeenLoggedIn = true;
 					try {
-						this.socket = new Socket(this.config.getString("chatserver.host"), config.getInt("chatserver.tcp.port"));
+						this.socket = new Socket(this.config.getString("chatserver.host"),
+								config.getInt("chatserver.tcp.port"));
 						// create a writer to send messages to the server
 						this.serverWriter = new PrintWriter(this.socket.getOutputStream(), true);
-						this.incomingMessageListener = new IncomingMessageListener(this.socket, this.userResponseStream,this.componentName, this);
+						this.incomingMessageListener = new IncomingMessageListener(this.socket, this.userResponseStream,
+								this.componentName, this);
 						this.pool.execute(incomingMessageListener);
 					} catch (UnknownHostException e) {
-						return "Error while login: " + e.getMessage();
+						// TODO Auto-generated catch block
+						e.printStackTrace();
 					} catch (IOException e) {
-						return "Error while login: " + e.getMessage();
+						// TODO Auto-generated catch block
+						e.printStackTrace();
 					}
 					this.serverWriter.println(new String(encodeBase64("!login " + username + " " + password)));
 				}
@@ -189,6 +194,7 @@ public class Client implements IClientCli, Runnable {
 		} else {
 			return "Not logged in.";
 		}
+
 	}
 
 	@Override
@@ -209,10 +215,9 @@ public class Client implements IClientCli, Runnable {
 		// send request-packet to server
 		this.datagramSocket.send(packet);
 
-		// create a fresh packet
 		buffer = new byte[1024];
+		// create a fresh packet
 		packet = new DatagramPacket(buffer, buffer.length);
-
 		// wait for response-packet from server
 		this.datagramSocket.receive(packet);
 
@@ -485,6 +490,8 @@ public class Client implements IClientCli, Runnable {
 			String finalPath = config.getString("chatserver.key");
 			RSAPublicKey serverPublicKey = (RSAPublicKey) Keys.readPublicPEM(new File(finalPath));
 
+
+
 				// Encrypt
 				try {
 					Cipher cipher = Cipher.getInstance("RSA/NONE/OAEPWithSHA256AndMGF1Padding");
@@ -515,7 +522,7 @@ public class Client implements IClientCli, Runnable {
 
 					}
 
-					byte[] messageDecoded = this.messageFromServer.getBytes();
+					byte[] messageDecoded = Base64.decode(this.messageFromServer.getBytes());
 
 					// Get Server public Key
 					String finalPath1 = config.getString("keys.dir")+"/"+username+".pem";
@@ -551,6 +558,7 @@ public class Client implements IClientCli, Runnable {
 
 							}
 
+
 							if(this.messageFromServer.equals("Succesfully authenticated with the chatserver")){
 								this.loggedIn = true;
 								this.userResponseStream.println(this.messageFromServer);
@@ -562,8 +570,19 @@ public class Client implements IClientCli, Runnable {
 					}
 
 
-				} catch (Exception e) {
-					return "Error while authenticate: " + e.getMessage();
+
+				} catch (NoSuchAlgorithmException e) {
+					e.printStackTrace();
+				} catch (NoSuchPaddingException e) {
+					e.printStackTrace();
+				} catch (InvalidKeyException e) {
+					e.printStackTrace();
+				} catch (BadPaddingException e) {
+					e.printStackTrace();
+				} catch (IllegalBlockSizeException e) {
+					e.printStackTrace();
+				} catch (InvalidAlgorithmParameterException e) {
+					e.printStackTrace();
 				}
 			
 		}else{
@@ -591,8 +610,5 @@ public class Client implements IClientCli, Runnable {
 		return Base64.decode(message);
 	}
 
-	public boolean isLoggedIn(){
-		return this.loggedIn;
-	}
 
 }

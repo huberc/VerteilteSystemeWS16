@@ -24,7 +24,6 @@ import model.User;
 import nameserver.INameserverForChatserver;
 import nameserver.exceptions.AlreadyRegisteredException;
 import nameserver.exceptions.InvalidDomainException;
-import org.bouncycastle.util.encoders.Base64;
 import util.Config;
 
 public class Chatserver implements IChatserverCli, Runnable {

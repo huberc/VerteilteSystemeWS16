@@ -11,11 +11,6 @@ import channel.Channel;
 import chatserver.AuthenticateHelper;
 import chatserver.Chatserver;
 import chatserver.Usermanager;
-import model.User;
-import security.AuthenticationException;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 
 /**
  * Thread to listen for incoming connections on the given socket.
@@ -30,17 +25,12 @@ public class TcpChannel extends Thread implements Channel {
 	private BufferedReader reader;
 	private AuthenticateHelper authenticateHelper;
 	private Channel decoratedChannel;
-	private Channel decoratedChannel1;
-	private Usermanager usermanager;
-	private SecretKey secretKey;
-	private IvParameterSpec ivParameterSpec;
 
 	public TcpChannel(Socket socket, Chatserver chatserver, PrintStream userResponseStream, Usermanager usermanager) {
 		this.clientSocket = socket;
 		this.chatserver = chatserver;
 		this.userResponseStream = userResponseStream;
-		this.usermanager = usermanager;
-		this.authenticateHelper = new AuthenticateHelper(chatserver,usermanager,this);
+		this.authenticateHelper = new AuthenticateHelper(chatserver,usermanager);
 		try {
 			// prepare the input reader for the socket
 			reader = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream()));
@@ -50,7 +40,7 @@ public class TcpChannel extends Thread implements Channel {
 			System.out.println("Failed to initialize TcpChannel (reader/writer)");
 			e.printStackTrace();
 		}
-		this.decoratedChannel = new TestChannel(this);
+		decoratedChannel = new TestChannel(this);
 	}
 
 	@Override
@@ -91,12 +81,6 @@ public class TcpChannel extends Thread implements Channel {
 				// writer.println(response);
 			}
 
-		} catch (AuthenticationException e) {
-			this.userResponseStream.println("Error during the authentication: " + e.getMessage());
-			Thread.currentThread().interrupt();
-			if (this.user != null) {
-				chatserver.logoutUser(clientSocket);
-			}
 		} catch (IOException e) {
 			this.userResponseStream.println("Connection closed to clients");
 			Thread.currentThread().interrupt();
@@ -113,14 +97,6 @@ public class TcpChannel extends Thread implements Channel {
 					// Ignored because we cannot handle it
 				}
 		}
-	}
-
-	public void setSecretKey(SecretKey secretKey) {
-		this.secretKey = secretKey;
-	}
-
-	public void setIvParameterSpec(IvParameterSpec ivParameterSpec) {
-		this.ivParameterSpec = ivParameterSpec;
 	}
 
 	@Override
