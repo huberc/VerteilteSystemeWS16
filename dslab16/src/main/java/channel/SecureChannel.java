@@ -26,22 +26,20 @@ public class SecureChannel extends ChannelDecorator implements  Runnable{
 	}
 	
 	@Override
-	public void write(String response) throws Exception{
-
-		byte[] responseBytes = response.getBytes();
+	public void write(byte[] response) throws Exception{
 
 		//Init cipher
-		IvParameterSpec ivSpec = new IvParameterSpec(responseBytes);
+		IvParameterSpec ivSpec = new IvParameterSpec(response);
 		cipherEncrypt.init(Cipher.ENCRYPT_MODE, key, ivSpec);
 
 		//Encrypt
-		byte[] encryptedMessage = cipherEncrypt.doFinal(responseBytes);
+		byte[] encryptedMessage = cipherEncrypt.doFinal(response);
 
 		decoratedChannel.write(new String(encryptedMessage));
 	}
 	
 	@Override
-	public String read() throws Exception{
+	public byte[] read() throws Exception{
 
 		byte[] data = this.decoratedChannel.read().getBytes();
 
@@ -50,9 +48,7 @@ public class SecureChannel extends ChannelDecorator implements  Runnable{
 		cipherDecrypt.init(Cipher.DECRYPT_MODE, key, ivSpec);
 
 		//Decrypt
-		byte[] decryptedMessage = cipherEncrypt.doFinal(data);
-
-		return new String(decryptedMessage);
+		return cipherEncrypt.doFinal(data);
 	}
 
 	@Override
